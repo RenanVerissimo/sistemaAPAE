@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { User, Relatorio } from '@/types';
+import { User } from '@/types';
 import { getRelatorios, getUsers, saveRelatorio, updateRelatorio, deleteRelatorio } from '@/utils/mockData';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
@@ -10,6 +10,7 @@ import { Badge } from '@/app/components/ui/badge';
 import { LogOut, PlusCircle, ChevronRight, ChevronLeft, Filter, Edit2, Trash2, Search as SearchIcon, FileDown, FileText, Calendar } from 'lucide-react';
 import { format } from 'date-fns';
 import { EvolucaoPacientesPage } from '@/app/components/EvolucaoPacientesPage';
+import { Relatorio } from '../../interfaces/interfaces';
 
 interface ProfessionalDashboardProps {
   user: User;
@@ -17,7 +18,7 @@ interface ProfessionalDashboardProps {
 }
 
 export function ProfessionalDashboard({ user, onLogout }: ProfessionalDashboardProps) {
-  type View = 'dashboard' | 'form' | 'relatorios' | 'evolucao' | 'laudos';
+
 
   const [relatorios, setRelatorios] = useState<Relatorio[]>([]);
   const [pacientes, setPacientes] = useState<User[]>([]);

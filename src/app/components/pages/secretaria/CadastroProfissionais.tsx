@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ProfessionalType } from '@/types';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
@@ -7,6 +7,10 @@ import { Label } from '@/app/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/app/components/ui/select';
 import { ChevronLeft } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { ProfessionalType } from '../../interfaces/interfaces';
+import { cadastrarProfissional } from '@/app/services/api';
+import SnackbarComponent from '../../SnackbarComponent';
+
 
 export function CadastroProfissionais() {
   const [nome, setNome] = useState('');
@@ -17,35 +21,76 @@ export function CadastroProfissionais() {
   const [dataNasc, setDataNasc] = useState('');
   const [outraEspecialidade, setOutraEspecialidade] = useState('');
   const [qtdAtendimentos, setQtdAtendimentos] = useState(0);
+  const [salvando, setSalvando] = useState(false);
+  const [erro, setErro] = useState<string | null>(null);
 
   const navigate = useNavigate();
 
-  const handleVoltar = () => {
-    navigate(-1);
+  const [snackbar, setSnackbar] = useState({
+    open: false,
+    message: "",
+    severity: "success" as "success" | "error" | "warning" | "info",
+  });
+
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSalvando(true);
+    setErro(null);
+
+    try {
+      const especialidadeFinal =
+        especialidade === 'outro' ? outraEspecialidade : especialidade;
+
+      await cadastrarProfissional({
+        nome,
+        email,
+        senha,
+        especialidade: especialidadeFinal,
+        registroProfissional,
+        dataNasc,
+        qtdAtendimentos,
+        rolee: '',
+      });
+
+      // sucesso → volta para a lista levando a mensagem
+      navigate('/SecretariaDashboard/ProfissionalCard', {
+        state: {
+          snackbar: {
+            open: true,
+            message: 'Profissional cadastrado com sucesso!',
+            severity: 'success',
+          },
+        },
+      });
+    } catch (error) {
+      console.error('Erro ao cadastrar profissional:', error);
+      setSnackbar({
+        open: true,
+        message: 'Erro ao cadastrar profissional. Verifique os dados e tente novamente.',
+        severity: 'error',
+      });
+    } finally {
+      setSalvando(false);
+    }
   };
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
       <div className="flex items-center gap-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => { navigate(-1) }}
-        >
+        <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
           <ChevronLeft className="w-5 h-5" />
         </Button>
-
-        <h2 className="text-lg font-semibold">
-          Cadastrar Profissional
-        </h2>
+        <h2 className="text-lg font-semibold">Cadastrar Profissional</h2>
       </div>
-      <Card className=''>
+
+      <Card>
         <CardHeader>
           <CardTitle>Novo Profissional</CardTitle>
         </CardHeader>
 
         <CardContent>
-          <form onSubmit={() => { }} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label>Nome Completo *</Label>
               <Input value={nome} onChange={e => setNome(e.target.value)} required />
@@ -93,7 +138,7 @@ export function CadastroProfissionais() {
                   <SelectItem value="outro">Outro</SelectItem>
                 </SelectContent>
               </Select>
-              {especialidade === "outro" && (
+              {especialidade === 'outro' && (
                 <div className="space-y-2">
                   <Label>Qual é a especialidade?</Label>
                   <Input
@@ -120,23 +165,43 @@ export function CadastroProfissionais() {
                 type="number"
                 min={0}
                 value={qtdAtendimentos}
-                onChange={(e) =>
-                  setQtdAtendimentos(e.target.value ? Number(e.target.value) : 0)
-                }
+                onChange={e => setQtdAtendimentos(e.target.value ? Number(e.target.value) : 0)}
               />
             </div>
 
+            {erro && (
+              <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">
+                {erro}
+              </p>
+            )}
+
             <div className="flex justify-end gap-2">
-              <Button type="submit" className="bg-green-600 hover:bg-green-700">
-                Cadastrar
+              <Button
+                type="submit"
+                className="bg-green-600 hover:bg-green-700"
+                disabled={salvando}
+              >
+                {salvando ? 'Cadastrando...' : 'Cadastrar'}
               </Button>
-              <Button type="button" variant="outline" onClick={handleVoltar}>
+              <Button type="button" variant="outline" onClick={() => navigate(-1)}>
                 Cancelar
               </Button>
             </div>
           </form>
         </CardContent>
       </Card>
+
+      <SnackbarComponent
+        open={snackbar.open}
+        message={snackbar.message}
+        severity={snackbar.severity}
+        onClose={() =>
+          setSnackbar((prev) => ({
+            ...prev,
+            open: false,
+          }))
+        }
+      />
     </div>
   );
 }

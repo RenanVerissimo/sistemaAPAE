@@ -10,16 +10,12 @@ import { getAtendimentos } from "@/app/services/api";
 import PersonIcon from '@mui/icons-material/Person';
 import MedicalServicesIcon from '@mui/icons-material/MedicalServices';
 import WorkspacePremiumIcon from '@mui/icons-material/WorkspacePremium';
+import NavigateNextIcon from '@mui/icons-material/NavigateNext';
+import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
+import { Relatorio } from "../../interfaces/interfaces";
 
 
-interface Relatorio {
-  id: number;
-  nomePaciente: string;
-  nomeProfissional: string;
-  especialidade: string;
-  dataConsulta: string;
-  descricao: string;
-}
+
 
 export function VerRelatorios() {
   const navigate = useNavigate();
@@ -32,7 +28,29 @@ export function VerRelatorios() {
   const [carregado, setCarregado] = useState(false);
   const [carregando, setCarregando] = useState(false);
   const [paginaAtual, setPaginaAtual] = useState(1);
-  const porPagina = 8;
+  const porPagina = 10;
+
+  const totalPaginas = Math.ceil(relatorios.length / porPagina);
+  const inicio = (paginaAtual - 1) * porPagina;
+  const relatoriosPaginados = relatorios.slice(inicio, inicio + porPagina);
+
+  const gerarPaginas = () => {
+    const paginas = [];
+    const maxPaginasVisiveis = 3;
+
+    let inicioP = Math.max(1, paginaAtual - 1);
+    let fim = Math.min(totalPaginas, inicioP + maxPaginasVisiveis - 1);
+
+    if (fim - inicioP < maxPaginasVisiveis - 1) {
+      inicioP = Math.max(1, fim - maxPaginasVisiveis + 1);
+    }
+
+    for (let i = inicioP; i <= fim; i++) {
+      paginas.push(i);
+    }
+
+    return paginas;
+  };
 
   const handlePesquisar = async () => {
     setCarregando(true);
@@ -63,10 +81,6 @@ export function VerRelatorios() {
     setRelatorios([]);
     setCarregado(false);
   };
-
-  const totalPaginas = Math.ceil(relatorios.length / porPagina);
-  const inicio = (paginaAtual - 1) * porPagina;
-  const relatoriosPaginados = relatorios.slice(inicio, inicio + porPagina);
 
   const formatarData = (data: string) => {
     if (!data) return "-";
@@ -188,7 +202,7 @@ export function VerRelatorios() {
                         {rel.especialidade}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-400 ">{formatarData(rel.dataConsulta)}</p>
+                    <p className="text-xs text-gray-400">{formatarData(rel.dataConsulta)}</p>
                     <p className="text-sm text-gray-700 mt-1 leading-relaxed">{rel.descricao}</p>
                   </div>
                 </CardContent>
@@ -198,10 +212,78 @@ export function VerRelatorios() {
 
           {totalPaginas > 1 && (
             <div className="flex items-center justify-between text-sm text-gray-600 mt-2">
-              <span>Mostrando {inicio + 1}–{Math.min(inicio + porPagina, relatorios.length)} de {relatorios.length}</span>
-              <div className="flex gap-1">
-                <Button variant="outline" size="sm" disabled={paginaAtual === 1} onClick={() => setPaginaAtual((p) => p - 1)}>Anterior</Button>
-                <Button variant="outline" size="sm" disabled={paginaAtual === totalPaginas} onClick={() => setPaginaAtual((p) => p + 1)}>Próxima</Button>
+              <span>
+                Mostrando {inicio + 1}–{Math.min(inicio + porPagina, relatorios.length)} de {relatorios.length}
+              </span>
+
+              <div className="flex items-center gap-1">
+                {/* PRIMEIRA */}
+                <button
+                  className="px-2 py-1 rounded hover:bg-gray-200 disabled:opacity-40"
+                  disabled={paginaAtual === 1}
+                  onClick={() => setPaginaAtual(1)}
+                >
+                  {"<<"}
+                </button>
+
+                {/* ANTERIOR */}
+                <button
+                  className="p-1 rounded hover:bg-gray-200 disabled:opacity-40"
+                  disabled={paginaAtual === 1}
+                  onClick={() => setPaginaAtual((prev) => prev - 1)}
+                >
+                  <NavigateBeforeIcon fontSize="small" />
+                </button>
+
+                {/* PRIMEIRA + ... */}
+                {paginaAtual > 2 && (
+                  <>
+                    <button
+                      className="px-2 py-1 rounded hover:bg-gray-200"
+                      onClick={() => setPaginaAtual(1)}
+                    >
+                      1
+                    </button>
+                    <span className="px-1">...</span>
+                  </>
+                )}
+
+                {/* PÁGINAS CENTRAIS */}
+                {gerarPaginas().map((numero) => (
+                  <button
+                    key={numero}
+                    className={`px-2 py-1 rounded ${
+                      numero === paginaAtual
+                        ? "bg-gray-800 text-white"
+                        : "hover:bg-gray-200"
+                    }`}
+                    onClick={() => setPaginaAtual(numero)}
+                  >
+                    {numero}
+                  </button>
+                ))}
+
+                {/* ... + ÚLTIMA */}
+                {paginaAtual < totalPaginas - 1 && (
+                  <>
+                    <span className="px-1">...</span>
+                    <button
+                      className="px-2 py-1 rounded hover:bg-gray-200"
+                      onClick={() => setPaginaAtual(totalPaginas)}
+                    >
+                      {totalPaginas}
+                    </button>
+                  </>
+                )}
+
+                {/* PRÓXIMA */}
+                <button
+                  className="p-1 rounded hover:bg-gray-200 disabled:opacity-40"
+                  disabled={paginaAtual === totalPaginas}
+                  onClick={() => setPaginaAtual((prev) => prev + 1)}
+                >
+                  <NavigateNextIcon fontSize="small" />
+                </button>
               </div>
             </div>
           )}
@@ -210,5 +292,3 @@ export function VerRelatorios() {
     </div>
   );
 }
-
-

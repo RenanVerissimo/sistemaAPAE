@@ -1,12 +1,13 @@
 import { Button } from "@/app/components/ui/button";
-import { ProfessionalType, Profissional } from "@/types";
+
 import { Card } from "@mui/material";
 import { ChevronLeft, FileText, Pencil, Trash2, UserPlus } from "lucide-react";
-import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { atualizarProfissional, deleteProfissional, getAllProfissionais } from "@/app/services/api";
 import SnackbarComponent from "../../SnackbarComponent";
 import PriorityHighIcon from '@mui/icons-material/PriorityHigh';
+import { ProfessionalType, Profissional } from "../../interfaces/interfaces";
+import { useLocation, useNavigate } from 'react-router-dom';
 
 export default function ProfissionalCard() {
 
@@ -57,6 +58,7 @@ export default function ProfissionalCard() {
     ];
 
     const navigate = useNavigate();
+    const location = useLocation();
 
     const handleVoltar = () => {
         navigate("/SecretariaDashboard");
@@ -127,11 +129,23 @@ export default function ProfissionalCard() {
     };
 
 
+
     useEffect(() => {
         fetchProfissionais();
     }, []);
 
-
+    useEffect(() => {
+        const state = location.state as { snackbar?: { message: string; severity: any } } | null;
+        if (state?.snackbar) {
+            setSnackbar({
+                open: true,
+                message: state.snackbar.message,
+                severity: state.snackbar.severity,
+            });
+            // limpa o state para não reabrir ao recarregar
+            navigate(location.pathname, { replace: true });
+        }
+    }, [location, navigate]);
 
     return (
         <>

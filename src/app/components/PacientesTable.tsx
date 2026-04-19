@@ -1,14 +1,14 @@
 import { useEffect, useState } from "react";
 import { Button } from "@/app/components/ui/button";
 import { Card } from "@/app/components/ui/card";
-import { Paciente } from "@/types";
+
 import { atualizarPaciente, deletePaciente, getAllPacientes } from "../services/api";
 import SnackbarComponent from "./SnackbarComponent";
 import { TableActions } from "./tableActions";
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
-import WarningAmberIcon from '@mui/icons-material/WarningAmber';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
+import { Paciente } from "./interfaces/interfaces";
 
 
 export function PacientesTable() {

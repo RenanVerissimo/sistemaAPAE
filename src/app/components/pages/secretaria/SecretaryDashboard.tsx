@@ -3,7 +3,7 @@ import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
 import { LogOut, Stethoscope, Users as UsersIcon, FileText } from "lucide-react";
 import ProfissionalCard from "./ProfissionalCard";
-import { getAllPacientes, getAllProfissionais, getQtdPacientes, getQtdProfissionais } from "@/app/services/api";
+import { getQtdPacientes, getQtdProfissionais } from "@/app/services/api";
 import { useEffect, useState } from "react";
 import { CadastroProfissionais } from "./CadastroProfissionais";
 import { PacienteCard } from "./PacienteCard";
