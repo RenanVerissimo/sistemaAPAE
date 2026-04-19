@@ -1,0 +1,14 @@
+{
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js"
+  },
+  "dependencies": {
+    "multer": "^2.0.2"
+  },
+  "devDependencies": {
+    "@types/multer": "^2.0.0"
+  }
+}
