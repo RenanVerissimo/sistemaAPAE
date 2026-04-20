@@ -227,10 +227,10 @@ app.get("/atendimentos", async (req: Request, res: Response) => {
 
     const params: any[] = [];
 
-    if (paciente)     { query += " AND p.nome LIKE ?";        params.push(`%${paciente}%`); }
-    if (profissional) { query += " AND pr.nome LIKE ?";       params.push(`%${profissional}%`); }
-    if (dataInicio)   { query += " AND a.dataConsulta >= ?";  params.push(dataInicio); }
-    if (dataFim)      { query += " AND a.dataConsulta <= ?";  params.push(dataFim); }
+    if (paciente) { query += " AND p.nome LIKE ?"; params.push(`%${paciente}%`); }
+    if (profissional) { query += " AND pr.nome LIKE ?"; params.push(`%${profissional}%`); }
+    if (dataInicio) { query += " AND a.dataConsulta >= ?"; params.push(dataInicio); }
+    if (dataFim) { query += " AND a.dataConsulta <= ?"; params.push(dataFim); }
 
     query += " ORDER BY a.dataConsulta DESC, a.createdAt DESC";
 

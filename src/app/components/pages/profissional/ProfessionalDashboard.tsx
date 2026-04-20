@@ -220,8 +220,8 @@ export function ProfessionalDashboard({ user, onLogout }: ProfessionalDashboardP
         <header className="bg-white border-b">
           <div className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 size="sm"
                 onClick={() => setShowLaudosPaciente(false)}
                 className="hover:bg-gray-100"
@@ -309,11 +309,11 @@ export function ProfessionalDashboard({ user, onLogout }: ProfessionalDashboardP
       <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
         {/* Botão Novo Relatório */}
         {!showForm && !showRelatorios && (
-          <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg">
+          <Card className="bg-gradient-to-r from-blue-500 to-blue-600 text-white hover:from-blue-600 hover:to-blue-700 transition-all shadow-lg cursor-pointer">
             <CardContent className="pt-6">
               <button
                 onClick={() => setShowForm(true)}
-                className="w-full flex items-center justify-center gap-3 text-left"
+                className="w-full flex items-center justify-center gap-3 text-left cursor-pointer"
               >
                 <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
                   <PlusCircle className="w-7 h-7" />
@@ -333,8 +333,8 @@ export function ProfessionalDashboard({ user, onLogout }: ProfessionalDashboardP
           <Card>
             <CardHeader>
               <div className="flex items-center gap-3">
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   size="sm"
                   onClick={() => editingRelatorio ? handleCancelarEdicao() : setShowForm(false)}
                   className="hover:bg-gray-100"
@@ -498,11 +498,11 @@ export function ProfessionalDashboard({ user, onLogout }: ProfessionalDashboardP
             </div>
 
             <h2 className="text-lg font-semibold mb-3">Registro de Evolução</h2>
-            <Card className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-lg">
+            <Card className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-lg cursor-pointer">
               <CardContent className="pt-6">
                 <button
                   onClick={() => setShowEvolucaoPaciente(true)}
-                  className="w-full flex items-center justify-center gap-3 text-left"
+                  className="w-full flex items-center justify-center gap-3 text-left cursor-pointer"
                 >
                   <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
                     <FileText className="w-7 h-7" />
@@ -524,8 +524,8 @@ export function ProfessionalDashboard({ user, onLogout }: ProfessionalDashboardP
         {showRelatorios && (
           <div className="space-y-4">
             <div className="flex items-center gap-3">
-              <Button 
-                variant="ghost" 
+              <Button
+                variant="ghost"
                 size="sm"
                 onClick={() => { setShowRelatorios(false); limparFiltros(); }}
                 className="hover:bg-gray-100"
