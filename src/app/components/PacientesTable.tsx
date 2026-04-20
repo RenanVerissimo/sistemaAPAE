@@ -9,9 +9,11 @@ import NavigateNextIcon from '@mui/icons-material/NavigateNext';
 import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 import ErrorOutlineIcon from '@mui/icons-material/ErrorOutline';
 import { Paciente } from "./interfaces/interfaces";
+import { useNavigate } from "react-router-dom";
 
 
 export function PacientesTable() {
+  const navigate = useNavigate();
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [descricaoSelecionada, setDescricaoSelecionada] = useState<string | null>(null);
 
@@ -281,7 +283,15 @@ export function PacientesTable() {
 
               <tbody>
                 {pacientesPaginaAtual.map((pac) => (
-                  <tr key={pac.id} className="border-b hover:bg-gray-200 h-[48px]">
+                  <tr
+                    key={pac.id}
+                    className="border-b hover:bg-gray-200 h-[48px] cursor-pointer"
+                    onClick={() =>
+                      navigate("/SecretariaDashboard/PacienteCard/VerRelatorios", {
+                        state: { paciente: { id: pac.id, nome: pac.nome } },
+                      })
+                    }
+                  >
                     <td className="px-3 py-2 text-center">{pac.nome}</td>
                     <td className="px-3 py-2 text-center">{pac.dataNasc}</td>
                     <td className="px-3 py-2 text-center">{pac.prontuario}</td>
@@ -293,7 +303,10 @@ export function PacientesTable() {
                           {limitarTexto(pac.descricao)}
                           <button
                             className="text-blue-600 text-xs ml-2 hover:underline"
-                            onClick={() => setDescricaoSelecionada(pac.descricao || "")}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setDescricaoSelecionada(pac.descricao || "");
+                            }}
                           >
                             Ver mais
                           </button>
@@ -310,7 +323,10 @@ export function PacientesTable() {
                       </span>
 
                     </td>
-                    <td className="px-3 py-2 text-center">
+                    <td
+                      className="px-3 py-2 text-center"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <TableActions
                         onDownload={() => console.log("download LAUDO", pac.id)}
                         onPower={() => {

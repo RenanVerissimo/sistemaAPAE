@@ -200,7 +200,17 @@ export default function ProfissionalCard() {
                             </thead>
                             <tbody>
                                 {profissionais.map((prof) => (
-                                    <tr key={prof.id} className="border-b hover:bg-gray-200">
+                                    <tr
+                                        key={prof.id}
+                                        className="border-b hover:bg-gray-200 cursor-pointer"
+                                        onClick={() =>
+                                            navigate("/SecretariaDashboard/PacienteCard/VerRelatorios", {
+                                                state: {
+                                                    profissional: { id: prof.id, nome: prof.nome },
+                                                },
+                                            })
+                                        }
+                                    >
                                         <td className="px-4 py-3 text-center">{prof.nome}</td>
                                         <td className="px-4 py-3 text-center">{prof.email}</td>
                                         <td className="px-4 py-3 text-center">
@@ -217,7 +227,8 @@ export default function ProfissionalCard() {
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    onClick={() => {
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
                                                         setProfissionalSelecionado(prof);
                                                     }}
                                                 >
@@ -227,7 +238,8 @@ export default function ProfissionalCard() {
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    onClick={() => {
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
                                                         setDeleteProf(true);
                                                         setProfissionalSelecionadoDel(prof);
                                                     }}

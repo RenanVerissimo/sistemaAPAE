@@ -5,10 +5,11 @@ import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
 import { Textarea } from '@/app/components/ui/textarea';
 import { ChevronLeft, FileDown, FileText, X } from 'lucide-react';
-import { Paciente } from '@/types';
+
 import { useNavigate } from 'react-router-dom';
 import { cadastrarPaciente } from '@/app/services/api';
 import SnackbarComponent from '../../SnackbarComponent';
+import { Paciente } from '../../interfaces/interfaces';
 
 
 
@@ -55,12 +56,8 @@ export function CadastroPacientes() {
     try {
       await cadastrarPaciente(novoPaciente);
 
-      setSnackbar({
-        open: true,
-        message: "Paciente CADASTRADO com sucesso!",
-        severity: "success",
-      });
       if (cadastrarOutro) {
+        // limpa o formulário e mostra o snackbar aqui mesmo
         setNome('');
         setCpf('');
         setCartaoSUS('');
@@ -69,12 +66,24 @@ export function CadastroPacientes() {
         setProntuario('');
         setLaudoFile(null);
         if (fileInputRef.current) fileInputRef.current.value = '';
-      } else {
-        setTimeout(() => {
-          handleVoltar();
-        }, 1000);
-      }
 
+        setSnackbar({
+          open: true,
+          message: "Paciente CADASTRADO com sucesso!",
+          severity: "success",
+        });
+      } else {
+        // volta para PacienteCard levando a mensagem
+        navigate("/SecretariaDashboard/PacienteCard", {
+          state: {
+            snackbar: {
+              open: true,
+              message: "Paciente CADASTRADO com sucesso!",
+              severity: "success",
+            },
+          },
+        });
+      }
     } catch (error) {
       setSnackbar({
         open: true,

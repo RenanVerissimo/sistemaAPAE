@@ -1,11 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ChevronLeft, Search, Filter, X } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
 import { Card, CardContent } from "@/app/components/ui/card";
 import { Badge } from "@/app/components/ui/badge";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { getAtendimentos } from "@/app/services/api";
 import PersonIcon from '@mui/icons-material/Person';
 import MedicalServicesIcon from '@mui/icons-material/MedicalServices';
@@ -15,10 +15,9 @@ import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 import { Relatorio } from "../../interfaces/interfaces";
 
 
-
-
 export function VerRelatorios() {
   const navigate = useNavigate();
+  const location = useLocation();
 
   const [nomePaciente, setNomePaciente] = useState("");
   const [nomeProfissional, setNomeProfissional] = useState("");
@@ -91,6 +90,74 @@ export function VerRelatorios() {
       year: "numeric",
     });
   };
+
+
+  useEffect(() => {
+    const state = location.state as
+      | {
+        profissional?: { id: number; nome: string };
+        paciente?: { id: number; nome: string };
+      }
+      | null;
+
+    if (state?.profissional) {
+      const nome = state.profissional.nome;
+      setNomeProfissional(nome);
+
+      // limpa o state do histórico
+      navigate(location.pathname, { replace: true });
+
+      // dispara a busca já com o nome do profissional
+      (async () => {
+        setCarregando(true);
+        setCarregado(false);
+        try {
+          const data = await getAtendimentos({
+            paciente: "",
+            profissional: nome,
+            dataInicio: "",
+            dataFim: "",
+          });
+          setRelatorios(data);
+          setPaginaAtual(1);
+        } catch (error) {
+          console.error("Erro ao buscar atendimentos:", error);
+          setRelatorios([]);
+        } finally {
+          setCarregando(false);
+          setCarregado(true);
+        }
+      })();
+    }
+    if (state?.paciente) {
+      const nome = state.paciente.nome;
+      setNomePaciente(nome);
+
+      navigate(location.pathname, { replace: true });
+
+      (async () => {
+        setCarregando(true);
+        setCarregado(false);
+        try {
+          const data = await getAtendimentos({
+            paciente: nome,
+            profissional: "",
+            dataInicio: "",
+            dataFim: "",
+          });
+          setRelatorios(data);
+          setPaginaAtual(1);
+        } catch (error) {
+          console.error("Erro ao buscar atendimentos:", error);
+          setRelatorios([]);
+        } finally {
+          setCarregando(false);
+          setCarregado(true);
+        }
+      })();
+    }
+  }, []);
+
 
   return (
     <div className="max-w-7xl mx-auto px-4 py-4 space-y-4">
@@ -252,11 +319,10 @@ export function VerRelatorios() {
                 {gerarPaginas().map((numero) => (
                   <button
                     key={numero}
-                    className={`px-2 py-1 rounded ${
-                      numero === paginaAtual
-                        ? "bg-gray-800 text-white"
-                        : "hover:bg-gray-200"
-                    }`}
+                    className={`px-2 py-1 rounded ${numero === paginaAtual
+                      ? "bg-gray-800 text-white"
+                      : "hover:bg-gray-200"
+                      }`}
                     onClick={() => setPaginaAtual(numero)}
                   >
                     {numero}
