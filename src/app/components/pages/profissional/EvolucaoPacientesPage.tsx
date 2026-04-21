@@ -48,11 +48,17 @@ export function EvolucaoPacientesPage({ user, onBack }: EvolucaoPacientesPagePro
 
 
 
-  const pacientesFiltrados = pacientes.filter((paciente) =>
-    paciente.nome.toLowerCase().includes(searchPaciente.toLowerCase()) ||
-    (paciente.cpf && paciente.cpf.includes(searchPaciente)) ||
-    (paciente.cartaoSUS && paciente.cartaoSUS.includes(searchPaciente))
-  );
+  const pacientesFiltrados = pacientes.filter((paciente) => {
+    const ativo = (paciente.status || "").toLowerCase() === "ativo";
+    if (!ativo) return false;
+
+    const termo = searchPaciente.toLowerCase();
+    return (
+      paciente.nome.toLowerCase().includes(termo) ||
+      (paciente.cpf && paciente.cpf.includes(searchPaciente)) ||
+      (paciente.cartaoSUS && paciente.cartaoSUS.includes(searchPaciente))
+    );
+  });
 
   const indexOfLastPaciente = currentPage * ITEMS_PER_PAGE;
   const indexOfFirstPaciente = indexOfLastPaciente - ITEMS_PER_PAGE;
@@ -222,7 +228,7 @@ export function EvolucaoPacientesPage({ user, onBack }: EvolucaoPacientesPagePro
 
           <CardContent className="space-y-6 mt-5">
             {/* Filtro */}
-            <div className="relative w-full max-w-md">
+            <div className="relative w-full">
               <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
               <Input
                 placeholder="Buscar paciente por nome, CPF ou CNIS..."
