@@ -67,7 +67,6 @@ export default function ProfissionalCard() {
 
     const fetchProfissionais = async () => {
         const pro = await getAllProfissionais();
-        console.log("profs:", pro);
         setProfissionais(pro);
     }
 

@@ -3,4 +3,4 @@ dist/
 .env
 *.log
 backend/google-credentials.json
-
+vite-env.d.ts
