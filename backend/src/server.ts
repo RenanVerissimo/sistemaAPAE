@@ -243,7 +243,7 @@ app.get("/atendimentos", async (req: Request, res: Response) => {
       params.push(dataFim);
     }
 
-    sql += " ORDER BY a.dataConsulta DESC";
+    sql += " ORDER BY a.dataConsulta DESC, a.id DESC";
 
     const [rows] = await db.query(sql, params);
     res.json(rows);
@@ -280,12 +280,37 @@ app.put("/atendimentos/:id", async (req: Request, res: Response) => {
     const { id } = req.params;
     const { paciente_id, profissional_id, dataConsulta, descricao } = req.body;
 
-    await db.query(
-      `UPDATE atendimentos
-         SET paciente_id = ?, profissional_id = ?, dataConsulta = ?, descricao = ?
-       WHERE id = ?`,
-      [paciente_id, profissional_id, dataConsulta, descricao ?? null, id]
+    // Checa se o atendimento pertence ao profissional
+    const [rows]: any = await db.query(
+      "SELECT profissional_id FROM atendimentos WHERE id = ?",
+      [id]
     );
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Atendimento não encontrado" });
+    }
+    if (Number(rows[0].profissional_id) !== Number(profissional_id)) {
+      return res.status(403).json({
+        message: "Você só pode editar atendimentos feitos por você",
+      });
+    }
+
+    // Se paciente_id veio no body, atualiza junto; senão atualiza só descricao + data
+    if (paciente_id) {
+      await db.query(
+        `UPDATE atendimentos
+           SET paciente_id = ?, dataConsulta = ?, descricao = ?
+         WHERE id = ?`,
+        [paciente_id, dataConsulta, descricao ?? null, id]
+      );
+    } else {
+      await db.query(
+        `UPDATE atendimentos
+           SET dataConsulta = ?, descricao = ?
+         WHERE id = ?`,
+        [dataConsulta, descricao ?? null, id]
+      );
+    }
+
     res.json({ message: "Atendimento atualizado com sucesso" });
   } catch (error) {
     console.error("Erro ao atualizar atendimento:", error);
@@ -296,6 +321,26 @@ app.put("/atendimentos/:id", async (req: Request, res: Response) => {
 app.delete("/atendimentos/:id", async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    const profissionalId = Number(req.query.profissional_id);
+
+    if (!profissionalId) {
+      return res.status(400).json({ message: "profissional_id é obrigatório" });
+    }
+
+    // Checa se o atendimento pertence ao profissional
+    const [rows]: any = await db.query(
+      "SELECT profissional_id FROM atendimentos WHERE id = ?",
+      [id]
+    );
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Atendimento não encontrado" });
+    }
+    if (Number(rows[0].profissional_id) !== profissionalId) {
+      return res.status(403).json({
+        message: "Você só pode excluir atendimentos feitos por você",
+      });
+    }
+
     await db.query("DELETE FROM atendimentos WHERE id = ?", [id]);
     res.json({ message: "Atendimento excluído com sucesso" });
   } catch (error) {
@@ -303,7 +348,6 @@ app.delete("/atendimentos/:id", async (req: Request, res: Response) => {
     res.status(500).json({ message: "Erro interno do servidor" });
   }
 });
-
 /* ================= LAUDOS ================= */
 //app.use("/api/laudos", laudoRoutes);
 

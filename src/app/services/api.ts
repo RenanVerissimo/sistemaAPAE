@@ -221,12 +221,16 @@ export const atualizarAtendimento = async (id: number, data: any) => {
   }
 };
 
-export const deleteAtendimento = async (id: number) => {
+export const deleteAtendimento = async (id: number, profissionalId: number) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/atendimentos/${id}`, {
-      method: "DELETE",
-    });
-    if (!response.ok) throw new Error("Erro ao deletar atendimento");
+    const response = await fetch(
+      `${API_BASE_URL}/atendimentos/${id}?profissional_id=${profissionalId}`,
+      { method: "DELETE" }
+    );
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.error || errorData.message || "Erro ao deletar atendimento");
+    }
     return await response.json();
   } catch (error) {
     console.error("Erro ao deletar atendimento:", error);

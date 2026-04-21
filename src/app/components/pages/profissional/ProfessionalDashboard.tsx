@@ -248,7 +248,7 @@ export function ProfessionalDashboard({
         />
         <Route
           path="HistoricoAtendimentos"
-          element={<HistoricoAtendimentos user={user} />}
+          element={<HistoricoAtendimentos user={user} setSnackbar={setSnackbar} />}
         />
         <Route
           path="LaudosPaciente"
