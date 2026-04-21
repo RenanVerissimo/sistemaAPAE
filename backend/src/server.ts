@@ -208,37 +208,48 @@ app.delete("/profissionais/:id", async (req: Request, res: Response) => {
 
 app.get("/atendimentos", async (req: Request, res: Response) => {
   try {
-    const { paciente, profissional, dataInicio, dataFim } = req.query;
+    const { paciente, profissional, especialidade, dataInicio, dataFim } = req.query;
 
-    let query = `
-      SELECT
-        a.id,
-        p.nome   AS nomePaciente,
-        pr.nome  AS nomeProfissional,
-        pr.especialidade AS especialidade,
-        a.dataConsulta,
-        a.descricao,
-        a.createdAt
+    let sql = `
+      SELECT a.*,
+             p.nome AS nomePaciente,
+             prof.nome AS nomeProfissional,
+             prof.especialidade AS especialidade
       FROM atendimentos a
-      JOIN pacientes p       ON a.paciente_id = p.id
-      JOIN profissionais pr  ON a.profissional_id = pr.id
+      INNER JOIN pacientes p ON p.id = a.paciente_id
+      INNER JOIN profissionais prof ON prof.id = a.profissional_id
       WHERE 1=1
     `;
-
     const params: any[] = [];
 
-    if (paciente) { query += " AND p.nome LIKE ?"; params.push(`%${paciente}%`); }
-    if (profissional) { query += " AND pr.nome LIKE ?"; params.push(`%${profissional}%`); }
-    if (dataInicio) { query += " AND a.dataConsulta >= ?"; params.push(dataInicio); }
-    if (dataFim) { query += " AND a.dataConsulta <= ?"; params.push(dataFim); }
+    if (paciente) {
+      sql += " AND p.nome LIKE ?";
+      params.push(`%${paciente}%`);
+    }
+    if (profissional) {
+      sql += " AND prof.nome LIKE ?";
+      params.push(`%${profissional}%`);
+    }
+    if (especialidade) {
+      sql += " AND prof.especialidade = ?";
+      params.push(especialidade);
+    }
+    if (dataInicio) {
+      sql += " AND a.dataConsulta >= ?";
+      params.push(dataInicio);
+    }
+    if (dataFim) {
+      sql += " AND a.dataConsulta <= ?";
+      params.push(dataFim);
+    }
 
-    query += " ORDER BY a.dataConsulta DESC, a.createdAt DESC";
+    sql += " ORDER BY a.dataConsulta DESC";
 
-    const [rows] = await db.query(query, params);
+    const [rows] = await db.query(sql, params);
     res.json(rows);
   } catch (error) {
     console.error("Erro ao buscar atendimentos:", error);
-    res.status(500).json({ message: "Erro interno do servidor" });
+    res.status(500).json({ message: "Erro interno" });
   }
 });
 
@@ -295,6 +306,23 @@ app.delete("/atendimentos/:id", async (req: Request, res: Response) => {
 
 /* ================= LAUDOS ================= */
 //app.use("/api/laudos", laudoRoutes);
+
+app.post("/login", async (req, res) => {
+  try {
+    const { email, senha } = req.body;
+    const [rows]: any = await db.query(
+      "SELECT * FROM profissionais WHERE email = ? AND senha = ?",
+      [email, senha]
+    );
+    if (rows.length === 0) {
+      return res.status(401).json({ message: "Credenciais inválidas" });
+    }
+    res.json(rows[0]);
+  } catch (error) {
+    console.error("Erro no login:", error);
+    res.status(500).json({ message: "Erro interno" });
+  }
+});
 
 /* ================= FRONTEND ================= */
 app.use(express.static(path.join(__dirname, "../../dist")));

@@ -1,33 +1,54 @@
 import { useState } from 'react';
-import { Profissional, User } from '@/types';
-import { getUsers } from '@/utils/mockData';
+
+import { login } from '@/app/services/api';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Input } from '@/app/components/ui/input';
 import { Label } from '@/app/components/ui/label';
 import { Button } from '@/app/components/ui/button';
 import { GraduationCap } from 'lucide-react';
+import { Profissional } from './interfaces/interfaces';
 
 interface LoginProps {
-  onLogin: (user: Profissional ) => void;
+  onLogin: (user: Profissional) => void;
 }
 
 export function Login({ onLogin }: LoginProps) {
   const [email, setEmail] = useState('');
   const [senha, setSenha] = useState('');
   const [error, setError] = useState('');
+  const [carregando, setCarregando] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setCarregando(true);
 
-    const users = getUsers();
-    const user = users.find(u => u.email === email && u.senha === senha);
+    try {
+      const user = await login(email, senha);
 
-    if (user) {
-      onLogin(user);
-    } else {
-      setError('Email ou senha incorretos');
+      if (user) {
+        const role = user.rolee === 'SECRETARIA' ? 'secretaria' : 'profissional';
+        onLogin({ ...user, role });
+      } else {
+        setError('Email ou senha incorretos');
+      }
+    } catch (err) {
+      console.error(err);
+      setError('Erro ao conectar com o servidor');
+    } finally {
+      setCarregando(false);
     }
+  };
+
+  // 🔧 ATALHOS DE TESTE — REMOVER DEPOIS
+  const preencherPaula = () => {
+    setEmail('paula.secretaria@apae.com');
+    setSenha('123456');
+  };
+
+  const preencherCarlos = () => {
+    setEmail('carlos.mendes@apae.com');
+    setSenha('123456');
   };
 
   return (
@@ -39,7 +60,7 @@ export function Login({ onLogin }: LoginProps) {
               <GraduationCap className="w-8 h-8 text-white" />
             </div>
           </div>
-          <CardTitle className="text-2xl">Sistema Escolar</CardTitle>
+          <CardTitle className="text-2xl">Sistema APAE</CardTitle>
           <CardDescription>
             Gerenciamento de Consultas e Relatórios
           </CardDescription>
@@ -51,7 +72,7 @@ export function Login({ onLogin }: LoginProps) {
               <Input
                 id="email"
                 type="email"
-                placeholder="seu.email@escola.com"
+                placeholder="seu.email@apae.com"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -71,19 +92,33 @@ export function Login({ onLogin }: LoginProps) {
             {error && (
               <p className="text-sm text-red-600">{error}</p>
             )}
-            <Button type="submit" className="w-full">
-              Entrar
+            <Button type="submit" className="w-full" disabled={carregando}>
+              {carregando ? 'Entrando...' : 'Entrar'}
             </Button>
           </form>
 
-          <div className="mt-6 pt-6 border-t">
-            <p className="text-sm text-gray-600 mb-2">Usuários de teste:</p>
-            <div className="space-y-1 text-xs text-gray-500">
-              <p>carlos@escola.com </p>
-              <p>ana@escola.com </p>
-              <p>maria@escola.com </p>
-              <p>secretaria@escola.com </p>
-              <p className="mt-2 font-semibold">Senha para todos: 123</p>
+          {/* 🔧 ATALHOS DE TESTE — REMOVER DEPOIS */}
+          <div className="mt-6 pt-4 border-t border-dashed border-gray-300">
+            <p className="text-xs text-gray-500 mb-2 text-center">
+              Atalhos de teste (remover depois)
+            </p>
+            <div className="flex gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1 cursor-pointer"
+                onClick={preencherPaula}
+              >
+                Paula (Secretaria)
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="flex-1 cursor-pointer"
+                onClick={preencherCarlos}
+              >
+                Carlos (Profissional)
+              </Button>
             </div>
           </div>
         </CardContent>

@@ -165,6 +165,7 @@ export const deleteProfissional = async (id: number) => {
 export const getAtendimentos = async (filtros: {
   paciente?: string;
   profissional?: string;
+  especialidade?: string;
   dataInicio?: string;
   dataFim?: string;
 }) => {
@@ -172,6 +173,7 @@ export const getAtendimentos = async (filtros: {
     const params = new URLSearchParams();
     if (filtros.paciente) params.append("paciente", filtros.paciente);
     if (filtros.profissional) params.append("profissional", filtros.profissional);
+    if (filtros.especialidade) params.append("especialidade", filtros.especialidade);
     if (filtros.dataInicio) params.append("dataInicio", filtros.dataInicio);
     if (filtros.dataFim) params.append("dataFim", filtros.dataFim);
 
@@ -230,4 +232,14 @@ export const deleteAtendimento = async (id: number) => {
     console.error("Erro ao deletar atendimento:", error);
     throw error;
   }
+};
+
+export const login = async (email: string, senha: string) => {
+  const response = await fetch(`${API_BASE_URL}/login`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ email, senha }),
+  });
+  if (!response.ok) return null;
+  return await response.json();
 };

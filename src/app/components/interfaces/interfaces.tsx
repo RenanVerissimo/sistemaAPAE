@@ -60,3 +60,32 @@ export interface Relatorio {
   data: string;
   createdAt: string;
 }
+
+export type Role = "profissional" | "secretaria";
+export interface User {
+  id: number;
+  nome: string;
+  email: string;
+  senha?: string;
+  dataNasc?: string;
+  especialidade: string;
+  outraEspecialidade?: string;
+  registroProfissional?: string;
+  rolee?: string;
+  qtdAtendimentos?: number;
+  role?: Role;
+}
+export interface Profissional extends User {}
+
+export interface Atendimento {
+  id: number;
+  paciente_id: number;
+  profissional_id: number;
+  dataConsulta: string;
+  descricao?: string;
+  nomePaciente?: string;
+  nomeProfissional?: string;
+  especialidade?: string;
+}
+
+

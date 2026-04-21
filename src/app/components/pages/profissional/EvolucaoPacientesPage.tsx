@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react';
-import { Relatorio, User } from '@/types';
+
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
 import { ArrowLeft, ArrowRight, FileDown, Search as SearchIcon } from 'lucide-react';
 import { Badge } from "@/app/components/ui/badge";
 import { generateAlunoRelatorioPDF } from "@/utils/generateAlunoRelatorioPDF";
-import { getRelatorios, getUsers } from "@/utils/mockData";
+import { getRelatorios } from "@/utils/mockData";
+import { getAllPacientes } from "@/app/services/api";
+import { Relatorio, User, Paciente } from '../../interfaces/interfaces';
 
 interface EvolucaoPacientesPageProps {
   user: User;
@@ -14,8 +16,9 @@ interface EvolucaoPacientesPageProps {
 }
 
 export function EvolucaoPacientesPage({ user, onBack }: EvolucaoPacientesPageProps) {
-  const [pacienteSelecionado, setPacienteSelecionado] = useState<User | null>(null);
-  const [pacientes, setPacientes] = useState<User[]>([]);
+  const [pacienteSelecionado, setPacienteSelecionado] = useState<Paciente | null>(null);
+  const [pacientes, setPacientes] = useState<Paciente[]>([]);
+
   const [searchPaciente, setSearchPaciente] = useState('');
   const [relatorios, setRelatorios] = useState<Relatorio[]>([]);
 
@@ -33,9 +36,15 @@ export function EvolucaoPacientesPage({ user, onBack }: EvolucaoPacientesPagePro
   const [descricaoSelecionada, setDescricaoSelecionada] = useState("");
 
   useEffect(() => {
-    const users = getUsers();
-    const pacientesAtivos = users.filter((u) => u.role === 'aluno');
-    setPacientes(pacientesAtivos);
+    const carregarPacientes = async () => {
+      try {
+        const lista: Paciente[] = await getAllPacientes();
+        setPacientes(lista);
+      } catch (err) {
+        console.error("Erro ao carregar pacientes:", err);
+      }
+    };
+    carregarPacientes();
   }, []);
 
   useEffect(() => {
@@ -77,23 +86,20 @@ export function EvolucaoPacientesPage({ user, onBack }: EvolucaoPacientesPagePro
     return (
       <div className="min-h-screen bg-gray-50">
         {/* HEADER */}
-        <header className="bg-white border-b">
-          <div className="max-w-5xl mx-auto px-4 py-4 flex items-center gap-3">
+
+        <div className="max-w-5xl mx-auto px-4 py-6 space-y-4">
+          {/* HEADER */}
+          <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setPageView("lista")}
+              className="cursor-pointer"
             >
-              <ArrowLeft className="w-4 h-4" />
+              <ArrowLeft className="w-5 h-5" />
             </Button>
-            <h1 className="text-xl font-semibold">
-              Registro de Evolução
-            </h1>
+            <h2 className="text-lg font-semibold">Registro de Evolução</h2>
           </div>
-        </header>
-
-        {/* CONTEÚDO */}
-        <div className="max-w-5xl mx-auto px-4 py-6 space-y-4">
           <Card>
             <CardHeader>
               <CardTitle>{pacienteSelecionado.nome}</CardTitle>
@@ -204,22 +210,21 @@ export function EvolucaoPacientesPage({ user, onBack }: EvolucaoPacientesPagePro
 
   return (
     <div className="min-h-screen bg-gray-50">
-      <header className="bg-white border-b">
-        <div className="max-w-5xl mx-auto px-4 py-4 flex items-center gap-3">
-          <Button variant="ghost" size="sm" onClick={onBack}>
-            <ArrowLeft className="w-4 h-4" />
+      <div className="max-w-5xl mx-auto px-4 py-6 space-y-4">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onBack}
+            className="cursor-pointer"
+          >
+            <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h1 className="text-xl font-semibold">Evolução do Paciente</h1>
+          <h2 className="text-lg font-semibold">Evolução do Paciente</h2>
         </div>
-      </header>
-
-      <div className="max-w-5xl mx-auto px-4 py-6 space-y-6">
         <Card>
-          <CardHeader>
-            <CardTitle>Lista de Pacientes</CardTitle>
-          </CardHeader>
 
-          <CardContent className="space-y-6">
+          <CardContent className="space-y-6 mt-5">
             {/* Filtro */}
             <div className="relative w-full max-w-md">
               <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
@@ -264,12 +269,12 @@ export function EvolucaoPacientesPage({ user, onBack }: EvolucaoPacientesPagePro
                       <td className="px-4 py-3">
                         <Badge
                           className={
-                            paciente.ativo
+                            paciente.status === "Ativo"
                               ? "bg-green-100 text-green-700"
                               : "bg-gray-200 text-gray-600"
                           }
                         >
-                          {paciente.ativo ? "Ativo" : "Inativo"}
+                          {paciente.status || "Inativo"}
                         </Badge>
                       </td>
 
