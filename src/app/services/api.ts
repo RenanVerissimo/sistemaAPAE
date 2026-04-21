@@ -160,6 +160,19 @@ export const deleteProfissional = async (id: number) => {
 };
 
 
+export async function atualizarSenhaProfissional(id: number, senha: string) {
+  const res = await fetch(`${API_BASE_URL}/profissionais/${id}/senha`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ senha }),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.message || "Erro ao atualizar senha");
+  }
+  return res.json();
+}
+
 // ==================== ATENDIMENTOS ====================
 
 export const getAtendimentos = async (filtros: {

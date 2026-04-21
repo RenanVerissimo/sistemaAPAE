@@ -204,6 +204,26 @@ app.delete("/profissionais/:id", async (req: Request, res: Response) => {
   }
 });
 
+app.put("/profissionais/:id/senha", async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const { senha } = req.body;
+
+    if (!senha || senha.length < 4) {
+      return res.status(400).json({ message: "Senha inválida (mínimo 4 caracteres)" });
+    }
+
+    await db.query(
+      "UPDATE profissionais SET senha = ? WHERE id = ?",
+      [senha, id]
+    );
+    res.json({ message: "Senha atualizada com sucesso" });
+  } catch (error) {
+    console.error("Erro ao atualizar senha:", error);
+    res.status(500).json({ message: "Erro interno do servidor" });
+  }
+});
+
 /* ================= ATENDIMENTOS ================= */
 
 app.get("/atendimentos", async (req: Request, res: Response) => {
@@ -373,6 +393,8 @@ app.use(express.static(path.join(__dirname, "../../dist")));
 app.use((req, res) => {
   res.sendFile(path.join(__dirname, "../../dist", "index.html"));
 });
+
+
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);

@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { ProfessionalType } from '../../interfaces/interfaces';
 import { cadastrarProfissional } from '@/app/services/api';
 import SnackbarComponent from '../../SnackbarComponent';
+import { Eye, EyeOff, Sparkles, Copy } from "lucide-react";
 
 
 export function CadastroProfissionais() {
@@ -75,6 +76,30 @@ export function CadastroProfissionais() {
     }
   };
 
+  function gerarSenhaMedia(nome: string, dataNasc: string): string {
+    // Pega o primeiro nome, sem acentos, capitalizado
+    const primeiroNome = (nome || "")
+      .trim()
+      .split(" ")[0]
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/[^a-zA-Z]/g, "");
+
+    const nomeFormatado = primeiroNome
+      ? primeiroNome.charAt(0).toUpperCase() + primeiroNome.slice(1).toLowerCase()
+      : "Usuario";
+
+    // Pega o ano do nascimento (formato esperado: yyyy-mm-dd)
+    const ano = dataNasc ? dataNasc.split("-")[0] : new Date().getFullYear().toString();
+
+    // Sorteia um símbolo
+    const simbolos = ["@", "#", "$", "!", "&", "*"];
+    const simbolo = simbolos[Math.floor(Math.random() * simbolos.length)];
+
+    return `${nomeFormatado}${ano}${simbolo}`;
+  }
+  const [mostrarSenha, setMostrarSenha] = useState(false);
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
       <div className="flex items-center gap-2">
@@ -113,13 +138,80 @@ export function CadastroProfissionais() {
 
             <div className="space-y-2">
               <Label>Senha *</Label>
-              <Input
-                type="password"
-                value={senha}
-                onChange={e => setSenha(e.target.value)}
-                minLength={3}
-                required
-              />
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <Input
+                    type={mostrarSenha ? "text" : "password"}
+                    value={senha}
+                    onChange={(e) => setSenha(e.target.value)}
+                    placeholder="Digite ou gere uma senha"
+                    className="pr-20"
+                    required
+                  />
+                  <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                    <button
+                      type="button"
+                      onClick={() => setMostrarSenha((v) => !v)}
+                      className="p-1 text-gray-500 hover:text-gray-700"
+                      title={mostrarSenha ? "Ocultar senha" : "Mostrar senha"}
+                    >
+                      {mostrarSenha ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (!senha) return;
+                        try {
+                          await navigator.clipboard.writeText(senha);
+                          setSnackbar({
+                            open: true,
+                            message: "Senha copiada!",
+                            severity: "success",
+                          });
+                        } catch {
+                          setSnackbar({
+                            open: true,
+                            message: "Não foi possível copiar.",
+                            severity: "error",
+                          });
+                        }
+                      }}
+                      className="p-1 text-gray-500 hover:text-gray-700"
+                      title="Copiar senha"
+                      disabled={!senha}
+                    >
+                      <Copy className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    if (!nome.trim() || !dataNasc.trim()) {
+                      setSnackbar({
+                        open: true,
+                        message: "Preencha o nome e a data de nascimento antes de gerar a senha.",
+                        severity: "warning",
+                      });
+                      return;
+                    }
+                    const novaSenha = gerarSenhaMedia(nome, dataNasc);
+                    setSenha(novaSenha);
+                    setMostrarSenha(true);
+                  }}
+                  className="whitespace-nowrap"
+                  title="Gera uma senha baseada no nome + ano de nascimento"
+                >
+                  <Sparkles className="w-4 h-4 mr-1" />
+                  Gerar senha
+                </Button>
+              </div>
+
+              <p className="text-xs text-gray-500">
+                💡 Use o botão "Gerar senha" pra criar automaticamente. Você pode mostrar e copiar pra entregar ao profissional.
+              </p>
             </div>
 
             <div className="space-y-2">

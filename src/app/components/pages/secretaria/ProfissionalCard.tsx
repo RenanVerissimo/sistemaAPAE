@@ -1,13 +1,72 @@
 import { Button } from "@/app/components/ui/button";
-
 import { Card } from "@mui/material";
-import { ChevronLeft, FileText, Pencil, Trash2, UserPlus } from "lucide-react";
 import { useState, useEffect } from "react";
 import { atualizarProfissional, deleteProfissional, getAllProfissionais } from "@/app/services/api";
 import SnackbarComponent from "../../SnackbarComponent";
 import PriorityHighIcon from '@mui/icons-material/PriorityHigh';
 import { ProfessionalType, Profissional } from "../../interfaces/interfaces";
 import { useLocation, useNavigate } from 'react-router-dom';
+import { ChevronLeft, FileText, Pencil, Trash2, UserPlus, KeyRound, Eye, EyeOff, Copy, Sparkles } from "lucide-react";
+import { atualizarSenhaProfissional } from "@/app/services/api";
+
+function limparTexto(t: string) {
+    return (t || "")
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-zA-Z0-9]/g, "");
+}
+
+function capitalizar(t: string) {
+    if (!t) return "";
+    return t.charAt(0).toUpperCase() + t.slice(1).toLowerCase();
+}
+
+function charAleatorio(qtd: number) {
+    const chars = "abcdefghijkmnpqrstuvwxyzABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+    let r = "";
+    for (let i = 0; i < qtd; i++) r += chars.charAt(Math.floor(Math.random() * chars.length));
+    return r;
+}
+
+function gerarSenhaProfissional(prof: { nome?: string; dataNasc?: string; email?: string }, tentativa: number) {
+    const partes = (prof.nome || "Usuario").trim().split(" ");
+    const primeiroNome = capitalizar(limparTexto(partes[0] || "Usuario"));
+    const ultimoNome = capitalizar(limparTexto(partes[partes.length - 1] || ""));
+    const iniciais = partes.map((p) => limparTexto(p).charAt(0).toUpperCase()).join("");
+    const ano = prof.dataNasc ? prof.dataNasc.split("-")[0] : "2025";
+    const anoCurto = ano.slice(-2);
+    const mes = prof.dataNasc ? prof.dataNasc.split("-")[1] || "01" : "01";
+    const dia = prof.dataNasc ? prof.dataNasc.split("-")[2]?.split("T")[0] || "01" : "01";
+    const usuarioEmail = capitalizar((prof.email || "").split("@")[0].replace(/[^a-zA-Z0-9]/g, ""));
+
+    const simbolos = ["@", "#", "$", "!", "&", "*"];
+    const sim = () => simbolos[Math.floor(Math.random() * simbolos.length)];
+
+    // 5 padrões fixos baseados nos dados
+    const padroes = [
+        `${primeiroNome}${ano}${sim()}`,
+        `${primeiroNome}${dia}${mes}${sim()}`,
+        `${ultimoNome || primeiroNome}${ano}${sim()}`,
+        `${primeiroNome}${anoCurto}${ano}${sim()}`,
+        `${iniciais || primeiroNome.charAt(0)}${dia}${mes}${ano}${sim()}`,
+    ];
+
+    if (tentativa < 5) {
+        return padroes[tentativa];
+    }
+
+    // Após 5ª: alterna entre apae + variações com aleatório
+    const variantes = [
+        `Apae${primeiroNome}${charAleatorio(3)}${sim()}`,
+        `${primeiroNome}Apae${ano}${charAleatorio(2)}`,
+        `Apae${anoCurto}${primeiroNome}${sim()}${charAleatorio(2)}`,
+        `${ultimoNome || primeiroNome}Apae${charAleatorio(3)}${sim()}`,
+        `Apae${iniciais}${ano}${charAleatorio(2)}${sim()}`,
+        `${primeiroNome}${charAleatorio(3)}Apae${sim()}`,
+    ];
+    return variantes[(tentativa - 5) % variantes.length];
+}
+
 
 export default function ProfissionalCard() {
 
@@ -21,7 +80,7 @@ export default function ProfissionalCard() {
     const [snackbar, setSnackbar] = useState({
         open: false,
         message: "",
-        severity: "success" as "success" | "error",
+        severity: "success" as "success" | "error" | "warning",
     });
 
 
@@ -127,6 +186,67 @@ export default function ProfissionalCard() {
         }
     };
 
+    const [profSenha, setProfSenha] = useState<Profissional | null>(null);
+    const [senhaAtual, setSenhaAtual] = useState("");
+    const [novaSenha, setNovaSenha] = useState("");
+    const [mostrarSenhaAtual, setMostrarSenhaAtual] = useState(false);
+    const [mostrarNovaSenha, setMostrarNovaSenha] = useState(false);
+    const [tentativaGerar, setTentativaGerar] = useState(0);
+    const [salvandoSenha, setSalvandoSenha] = useState(false);
+
+    const abrirModalSenha = (prof: Profissional) => {
+        setProfSenha(prof);
+        setSenhaAtual(prof.senha || "");
+        setNovaSenha("");
+        setMostrarSenhaAtual(false);
+        setMostrarNovaSenha(false);
+        setTentativaGerar(0);
+    };
+
+    const fecharModalSenha = () => {
+        setProfSenha(null);
+        setSenhaAtual("");
+        setNovaSenha("");
+        setTentativaGerar(0);
+    };
+
+    const copiar = async (texto: string) => {
+        if (!texto) return;
+        try {
+            await navigator.clipboard.writeText(texto);
+            setSnackbar({ open: true, message: "Senha copiada!", severity: "success" });
+        } catch {
+            setSnackbar({ open: true, message: "Não foi possível copiar.", severity: "error" });
+        }
+    };
+
+    const handleGerarSenha = () => {
+        if (!profSenha) return;
+        const nova = gerarSenhaProfissional(profSenha, tentativaGerar);
+        setNovaSenha(nova);
+        setMostrarNovaSenha(true);
+        setTentativaGerar((t) => t + 1);
+    };
+
+    const handleSalvarSenha = async () => {
+        if (!profSenha || !novaSenha.trim()) {
+            setSnackbar({ open: true, message: "Digite ou gere uma senha primeiro.", severity: "warning" });
+            return;
+        }
+        setSalvandoSenha(true);
+        try {
+            await atualizarSenhaProfissional(profSenha.id, novaSenha);
+            setSnackbar({ open: true, message: "Senha atualizada com sucesso!", severity: "success" });
+            fecharModalSenha();
+            fetchProfissionais();
+        } catch (err: any) {
+            setSnackbar({ open: true, message: err.message || "Erro ao atualizar senha.", severity: "error" });
+        } finally {
+            setSalvandoSenha(false);
+        }
+    };
+
+
 
 
     useEffect(() => {
@@ -230,9 +350,12 @@ export default function ProfissionalCard() {
                                                         e.stopPropagation();
                                                         setProfissionalSelecionado(prof);
                                                     }}
+                                                    title="Editar profissional"
                                                 >
                                                     <Pencil className="w-4 h-4" />
                                                 </Button>
+
+
 
                                                 <Button
                                                     variant="ghost"
@@ -242,9 +365,21 @@ export default function ProfissionalCard() {
                                                         setDeleteProf(true);
                                                         setProfissionalSelecionadoDel(prof);
                                                     }}
+                                                    title="Excluir profissional"
                                                 >
-
                                                     <Trash2 className="w-4 h-4 text-red-600" />
+                                                </Button>
+
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        abrirModalSenha(prof);
+                                                    }}
+                                                    title="Gerenciar senha"
+                                                >
+                                                    <KeyRound className="w-4 h-4 text-blue-600" />
                                                 </Button>
                                             </div>
                                         </td>
@@ -430,7 +565,116 @@ export default function ProfissionalCard() {
                         </div>
                     </div>
                 )}
+                {profSenha && (
+                    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                        <div className="bg-white w-full max-w-md rounded-lg shadow-lg p-6 space-y-5">
+                            <div className="flex items-center gap-2">
+                                <KeyRound className="w-5 h-5 text-blue-600" />
+                                <h2 className="text-lg font-semibold">Gerenciar Senha</h2>
+                            </div>
 
+                            <p className="text-sm text-gray-600">
+                                Profissional: <span className="font-medium text-gray-800">{profSenha.nome}</span>
+                            </p>
+
+                            {/* Senha atual */}
+                            <div className="space-y-1">
+                                <label className="text-xs font-medium text-gray-700">Senha atual</label>
+                                <div className="relative">
+                                    <input
+                                        type={mostrarSenhaAtual ? "text" : "password"}
+                                        value={senhaAtual}
+                                        readOnly
+                                        className="w-full border rounded-md px-3 py-2 pr-20 bg-gray-50 text-sm"
+                                    />
+                                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                                        <button
+                                            type="button"
+                                            onClick={() => setMostrarSenhaAtual((v) => !v)}
+                                            className="p-1 text-gray-500 hover:text-gray-700"
+                                            title={mostrarSenhaAtual ? "Ocultar" : "Mostrar"}
+                                        >
+                                            {mostrarSenhaAtual ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                        </button>
+                                        <button
+                                            type="button"
+                                            onClick={() => copiar(senhaAtual)}
+                                            className="p-1 text-gray-500 hover:text-gray-700"
+                                            title="Copiar"
+                                            disabled={!senhaAtual}
+                                        >
+                                            <Copy className="w-4 h-4" />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Nova senha */}
+                            <div className="space-y-1">
+                                <label className="text-xs font-medium text-gray-700">Nova senha (opcional)</label>
+                                <div className="flex gap-2">
+                                    <div className="relative flex-1">
+                                        <input
+                                            type={mostrarNovaSenha ? "text" : "password"}
+                                            value={novaSenha}
+                                            onChange={(e) => setNovaSenha(e.target.value)}
+                                            placeholder="Digite ou gere uma nova senha"
+                                            className="w-full border-2 border-blue-300 bg-blue-50 rounded-md px-3 py-2 pr-20 text-sm focus:border-blue-500 focus:outline-none"
+                                        />
+                                        <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1">
+                                            <button
+                                                type="button"
+                                                onClick={() => setMostrarNovaSenha((v) => !v)}
+                                                className="p-1 text-gray-500 hover:text-gray-700"
+                                                title={mostrarNovaSenha ? "Ocultar" : "Mostrar"}
+                                            >
+                                                {mostrarNovaSenha ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={() => copiar(novaSenha)}
+                                                className="p-1 text-gray-500 hover:text-gray-700"
+                                                title="Copiar"
+                                                disabled={!novaSenha}
+                                            >
+                                                <Copy className="w-4 h-4" />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        onClick={handleGerarSenha}
+                                        className="whitespace-nowrap"
+                                        title="Gera uma sugestão de senha"
+                                    >
+                                        <Sparkles className="w-4 h-4 mr-1" />
+                                        Gerar
+                                    </Button>
+                                </div>
+                                <p className="text-xs text-gray-500">
+                                    {tentativaGerar === 0 && "💡 Clique em \"Gerar\" pra criar uma sugestão baseada nos dados do profissional."}
+                                    {tentativaGerar > 0 && tentativaGerar < 5 && `Variação ${tentativaGerar} de 5. Clique de novo pra ver outra opção.`}
+                                    {tentativaGerar >= 5 && "Agora alternando entre variações com \"apae\" + dados + caracteres aleatórios."}
+                                </p>
+                            </div>
+
+                            <div className="flex justify-end gap-2 pt-2 border-t">
+                                <Button variant="outline" onClick={fecharModalSenha} disabled={salvandoSenha}>
+                                    Cancelar
+                                </Button>
+                                <Button
+                                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                                    onClick={handleSalvarSenha}
+                                    disabled={salvandoSenha || !novaSenha.trim()}
+                                >
+                                    {salvandoSenha ? "Salvando..." : "Salvar nova senha"}
+                                </Button>
+                            </div>
+                        </div>
+                    </div>
+                )}
 
                 <SnackbarComponent
                     open={snackbar.open}
