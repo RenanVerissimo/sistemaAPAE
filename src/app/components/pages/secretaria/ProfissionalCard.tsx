@@ -166,10 +166,10 @@ export default function ProfissionalCard() {
                 <div className="flex gap-2">
                     <Button
                         className="bg-blue-600 hover:bg-blue-700 text-white"
-                        onClick={() => navigate("/SecretariaDashboard/PacienteCard/VerRelatorios")}
+                        onClick={() => navigate("/SecretariaDashboard/ProfissionalCard/VerAtendimentos")}
                     >
                         <FileText className="w-4 h-4 mr-2" />
-                        Ver Relatórios
+                        Ver Atendimentos
                     </Button>
 
                     <Button
@@ -204,7 +204,7 @@ export default function ProfissionalCard() {
                                         key={prof.id}
                                         className="border-b hover:bg-gray-200 cursor-pointer"
                                         onClick={() =>
-                                            navigate("/SecretariaDashboard/PacienteCard/VerRelatorios", {
+                                            navigate("/SecretariaDashboard/PacienteCard/VerAtendimentos", {
                                                 state: {
                                                     profissional: { id: prof.id, nome: prof.nome },
                                                 },

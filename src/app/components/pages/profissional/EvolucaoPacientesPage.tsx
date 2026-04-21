@@ -6,7 +6,6 @@ import { Input } from '@/app/components/ui/input';
 import { ArrowLeft, ArrowRight, FileDown, Search as SearchIcon } from 'lucide-react';
 import { Badge } from "@/app/components/ui/badge";
 import { generateAlunoRelatorioPDF } from "@/utils/generateAlunoRelatorioPDF";
-import { getRelatorios } from "@/utils/mockData";
 import { getAllPacientes } from "@/app/services/api";
 import { Relatorio, User, Paciente } from '../../interfaces/interfaces';
 
@@ -47,10 +46,7 @@ export function EvolucaoPacientesPage({ user, onBack }: EvolucaoPacientesPagePro
     carregarPacientes();
   }, []);
 
-  useEffect(() => {
-    const rels = getRelatorios();
-    setRelatorios(rels);
-  }, []);
+
 
   const pacientesFiltrados = pacientes.filter((paciente) =>
     paciente.nome.toLowerCase().includes(searchPaciente.toLowerCase()) ||

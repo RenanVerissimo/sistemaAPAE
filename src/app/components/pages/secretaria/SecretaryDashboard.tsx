@@ -8,7 +8,7 @@ import { useEffect, useState } from "react";
 import { CadastroProfissionais } from "./CadastroProfissionais";
 import { PacienteCard } from "./PacienteCard";
 import { CadastroPacientes } from "./CadastroPacientes";
-import { VerRelatorios } from "./VerRelatorios";
+import { VerAtendimentos } from "./VerAtendimentos";
 
 
 
@@ -136,8 +136,8 @@ export function SecretaryDashboard({
         <Route path="PacienteCard" element={<PacienteCard />} />
         <Route path="ProfissionalCard/CadastroProfissional" element={<CadastroProfissionais />} />
         <Route path="PacienteCard/CadastroPaciente" element={<CadastroPacientes />} />
-        <Route path="PacienteCard/VerRelatorios" element={<VerRelatorios />} />
-        <Route path="ProfissionalCard/VerRelatorios" element={<VerRelatorios />} />
+        <Route path="PacienteCard/VerAtendimentos" element={<VerAtendimentos />} />
+        <Route path="ProfissionalCard/VerAtendimentos" element={<VerAtendimentos />} />
 
       </Routes>
     </div>

@@ -119,7 +119,7 @@ export function ProfessionalDashboard({
                     <div className="flex-1">
                       <h3 className="text-xl font-bold">Criar Novo Atendimento</h3>
                       <p className="text-sm text-blue-100">
-                        Registre um NOVO atendimento com um paciente
+                        Registre um NOVO atendimento
                       </p>
                     </div>
                     <ChevronRight className="w-6 h-6" />

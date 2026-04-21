@@ -287,7 +287,7 @@ export function PacientesTable() {
                     key={pac.id}
                     className="border-b hover:bg-gray-200 h-[48px] cursor-pointer"
                     onClick={() =>
-                      navigate("/SecretariaDashboard/PacienteCard/VerRelatorios", {
+                      navigate("/SecretariaDashboard/PacienteCard/VerAtendimentos", {
                         state: { paciente: { id: pac.id, nome: pac.nome } },
                       })
                     }

@@ -1,17 +1,15 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { BrowserRouter } from "react-router-dom";
-import { User } from "@/types";
-import { initializeLocalStorage } from "@/utils/mockData";
+
 import { Toaster } from "@/app/components/ui/sonner";
 import { AppRoutes } from "./routes";
+import { User } from "./components/interfaces/interfaces";
 
 
 export default function App() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
 
-  useEffect(() => {
-    initializeLocalStorage();
-  }, []);
+
 
   const handleLogin = (user: User) => {
     setCurrentUser(user);

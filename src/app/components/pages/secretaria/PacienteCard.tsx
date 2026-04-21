@@ -45,10 +45,10 @@ export function PacienteCard() {
                 <div className="flex gap-2">
                     <Button
                         className="bg-blue-600 hover:bg-blue-700 text-white"
-                        onClick={() => navigate("/SecretariaDashboard/PacienteCard/VerRelatorios")}
+                        onClick={() => navigate("/SecretariaDashboard/PacienteCard/VerAtendimentos")}
                     >
                         <FileText className="w-4 h-4 mr-2" />
-                        Ver Relatórios
+                        Ver Atendimentos
                     </Button>
 
                     <Button

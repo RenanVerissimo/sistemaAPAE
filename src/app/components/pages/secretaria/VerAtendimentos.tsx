@@ -15,14 +15,27 @@ import NavigateBeforeIcon from '@mui/icons-material/NavigateBefore';
 import { Relatorio } from "../../interfaces/interfaces";
 
 
-export function VerRelatorios() {
+export function VerAtendimentos() {
   const navigate = useNavigate();
   const location = useLocation();
 
+  const formatarParaInput = (date: Date) => {
+    const ano = date.getFullYear();
+    const mes = String(date.getMonth() + 1).padStart(2, "0");
+    const dia = String(date.getDate()).padStart(2, "0");
+    return `${ano}-${mes}-${dia}`;
+  };
+  const getDataHoje = () => formatarParaInput(new Date());
+  const getDataOntem = () => {
+    const ontem = new Date();
+    ontem.setDate(ontem.getDate() - 1);
+    return formatarParaInput(ontem);
+  };
+
   const [nomePaciente, setNomePaciente] = useState("");
   const [nomeProfissional, setNomeProfissional] = useState("");
-  const [dataInicio, setDataInicio] = useState("");
-  const [dataFim, setDataFim] = useState("");
+  const [dataInicio, setDataInicio] = useState(getDataOntem());
+  const [dataFim, setDataFim] = useState(getDataHoje());
   const [relatorios, setRelatorios] = useState<Relatorio[]>([]);
   const [carregado, setCarregado] = useState(false);
   const [carregando, setCarregando] = useState(false);
@@ -75,8 +88,8 @@ export function VerRelatorios() {
   const handleLimpar = () => {
     setNomePaciente("");
     setNomeProfissional("");
-    setDataInicio("");
-    setDataFim("");
+    setDataInicio(getDataOntem());
+    setDataFim(getDataHoje());
     setRelatorios([]);
     setCarregado(false);
   };
@@ -90,6 +103,7 @@ export function VerRelatorios() {
       year: "numeric",
     });
   };
+
 
 
   useEffect(() => {
@@ -115,8 +129,8 @@ export function VerRelatorios() {
           const data = await getAtendimentos({
             paciente: "",
             profissional: nome,
-            dataInicio: "",
-            dataFim: "",
+            dataInicio,
+            dataFim,
           });
           setRelatorios(data);
           setPaginaAtual(1);
@@ -142,8 +156,8 @@ export function VerRelatorios() {
           const data = await getAtendimentos({
             paciente: nome,
             profissional: "",
-            dataInicio: "",
-            dataFim: "",
+            dataInicio,
+            dataFim,
           });
           setRelatorios(data);
           setPaginaAtual(1);
@@ -165,7 +179,7 @@ export function VerRelatorios() {
         <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
           <ChevronLeft className="w-5 h-5" />
         </Button>
-        <h2 className="text-lg font-semibold">Histórico de Relatórios</h2>
+        <h2 className="text-lg font-semibold">Histórico de Atendimentos</h2>
       </div>
 
       <Card className="bg-blue-50 border-blue-200">
@@ -175,7 +189,7 @@ export function VerRelatorios() {
               <Filter className="w-5 h-5 text-blue-600" />
             </div>
             <div className="flex-1 space-y-4">
-              <p className="font-semibold text-sm text-gray-700">Filtrar relatórios</p>
+              <p className="font-semibold text-sm text-gray-700">Filtrar Atendimentos</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <Label className="text-xs">Nome do Paciente</Label>
@@ -234,7 +248,7 @@ export function VerRelatorios() {
         <Card>
           <CardContent className="text-center py-12 text-gray-400">
             <Filter className="w-8 h-8 mx-auto mb-2 opacity-30" />
-            <p className="text-sm">Use os filtros acima para buscar relatórios</p>
+            <p className="text-sm">Use os filtros acima para buscar atendimentos.</p>
           </CardContent>
         </Card>
       )}
