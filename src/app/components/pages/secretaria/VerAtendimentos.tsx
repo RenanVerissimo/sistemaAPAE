@@ -121,10 +121,8 @@ export function VerAtendimentos() {
       const nome = state.profissional.nome;
       setNomeProfissional(nome);
 
-      // limpa o state do histórico
       navigate(location.pathname, { replace: true });
 
-      // dispara a busca já com o nome do profissional
       (async () => {
         setCarregando(true);
         setCarregado(false);

@@ -350,9 +350,10 @@ export default function ProfissionalCard() {
                                                         e.stopPropagation();
                                                         setProfissionalSelecionado(prof);
                                                     }}
+                                                    className="cursor-pointer border border-transparent transition-all hover:border-yellow-300 hover:bg-yellow-50 hover:shadow-sm hover:scale-105"
                                                     title="Editar profissional"
                                                 >
-                                                    <Pencil className="w-4 h-4" />
+                                                    <Pencil className="w-4 h-4 text-yellow-600" />
                                                 </Button>
 
 
@@ -365,6 +366,7 @@ export default function ProfissionalCard() {
                                                         setDeleteProf(true);
                                                         setProfissionalSelecionadoDel(prof);
                                                     }}
+                                                    className="cursor-pointer border border-transparent transition-all hover:border-red-200 hover:bg-red-50 hover:shadow-sm hover:scale-105"
                                                     title="Excluir profissional"
                                                 >
                                                     <Trash2 className="w-4 h-4 text-red-600" />
@@ -377,6 +379,7 @@ export default function ProfissionalCard() {
                                                         e.stopPropagation();
                                                         abrirModalSenha(prof);
                                                     }}
+                                                    className="cursor-pointer border border-transparent transition-all hover:border-blue-200 hover:bg-blue-50 hover:shadow-sm hover:scale-105"
                                                     title="Gerenciar senha"
                                                 >
                                                     <KeyRound className="w-4 h-4 text-blue-600" />

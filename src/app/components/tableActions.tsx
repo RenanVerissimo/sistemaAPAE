@@ -20,31 +20,56 @@ export function TableActions({
         <div className="flex justify-center gap-2">
 
             {onDownload && (
-                <Button variant="ghost" size="sm" onClick={onDownload}>
-                    <FileDown className="w-4 h-4" />
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onDownload}
+                    className="cursor-pointer border border-transparent transition-all hover:border-blue-200 hover:bg-blue-50 hover:shadow-sm hover:scale-105"
+                >
+                    <FileDown className="w-4 h-4 text-blue-600" />
                 </Button>
             )}
 
             {onPower && (
-                <Button variant="ghost" size="sm" onClick={onPower}>
-                    <Power className="w-4 h-4" />
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onPower}
+                    className="cursor-pointer border border-transparent transition-all hover:border-emerald-200 hover:bg-emerald-50 hover:shadow-sm hover:scale-105"
+                >
+                    <Power className="w-4 h-4 text-emerald-600" />
                 </Button>
             )}
 
             {onEdit && (
-                <Button variant="ghost" size="sm" onClick={onEdit}>
-                    <Pencil className="w-4 h-4" />
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onEdit}
+                    className="cursor-pointer border border-transparent transition-all hover:border-yellow-300 hover:bg-yellow-50 hover:shadow-sm hover:scale-105"
+                >
+                    <Pencil className="w-4 h-4 text-yellow-600" />
                 </Button>
             )}
 
             {onDelete && (
-                <Button variant="ghost" size="sm" onClick={onDelete}>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onDelete}
+                    className="cursor-pointer border border-transparent transition-all hover:border-red-200 hover:bg-red-50 hover:shadow-sm hover:scale-105"
+                >
                     <Trash2 className="w-4 h-4 text-red-600" />
                 </Button>
             )}
 
             {onLaudo && (
-                <Button variant="ghost" size="sm" onClick={onLaudo}>
+                <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={onLaudo}
+                    className="cursor-pointer border border-transparent transition-all hover:border-red-200 hover:bg-red-50 hover:shadow-sm hover:scale-105"
+                >
                     <Trash2 className="w-4 h-4 text-red-600" />
                 </Button>
             )}

@@ -57,7 +57,12 @@ export function SecretaryDashboard({
             <p className="text-sm text-gray-500">Secretaria</p>
           </div>
 
-          <Button variant="ghost" size="sm" onClick={onLogout}>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onLogout}
+            className="cursor-pointer border border-red-600 bg-red-600 text-white hover:bg-red-700 hover:text-white"
+          >
             <LogOut className="w-4 h-4 mr-2" />
             Sair
           </Button>

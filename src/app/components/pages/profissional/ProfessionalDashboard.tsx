@@ -93,7 +93,12 @@ export function ProfessionalDashboard({
               {user.especialidade}
             </p>
           </div>
-          <Button variant="ghost" size="sm" onClick={onLogout} className="cursor-pointer">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onLogout}
+            className="cursor-pointer border border-red-600 bg-red-600 text-white hover:bg-red-700 hover:text-white"
+          >
             <LogOut className="w-4 h-4 mr-2" />
             Sair
           </Button>

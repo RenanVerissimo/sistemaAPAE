@@ -79,20 +79,14 @@ export function HistoricoAtendimentos({ user, setSnackbar }: HistoricoAtendiment
     setModalEdicao(rel);
     setEditDescricao(rel.descricao || "");
     setEditData(rel.dataConsulta?.split("T")[0] || "");
-    setEditPacienteId(rel.paciente_id ?? rel.pacienteId ?? null);
     setEditPacienteNome(rel.nomePaciente || rel.paciente_nome || "");
-    setEditPacienteSearch("");
-    setEditandoPaciente(false);
   };
 
   const fecharModalEdicao = () => {
     setModalEdicao(null);
     setEditDescricao("");
     setEditData("");
-    setEditPacienteId(null);
     setEditPacienteNome("");
-    setEditPacienteSearch("");
-    setEditandoPaciente(false);
   };
 
   const salvarEdicao = async () => {
@@ -100,7 +94,6 @@ export function HistoricoAtendimentos({ user, setSnackbar }: HistoricoAtendiment
     setSalvando(true);
     try {
       await atualizarAtendimento(modalEdicao.id, {
-        paciente_id: editPacienteId,
         descricao: editDescricao,
         dataConsulta: editData,
         profissional_id: Number(user.id),
@@ -112,9 +105,6 @@ export function HistoricoAtendimentos({ user, setSnackbar }: HistoricoAtendiment
               ...a,
               descricao: editDescricao,
               dataConsulta: editData,
-              paciente_id: editPacienteId,
-              nomePaciente: editPacienteNome,
-              paciente_nome: editPacienteNome,
             }
             : a
         )
@@ -160,11 +150,7 @@ export function HistoricoAtendimentos({ user, setSnackbar }: HistoricoAtendiment
   };
 
 
-  const [editandoPaciente, setEditandoPaciente] = useState(false);
-  const [editPacienteSearch, setEditPacienteSearch] = useState("");
-  const [editPacienteId, setEditPacienteId] = useState<number | null>(null);
   const [editPacienteNome, setEditPacienteNome] = useState("");
-  const [showEditPacienteSugest, setShowEditPacienteSugest] = useState(false);
 
   // Carrega profissionais da mesma especialidade
   useEffect(() => {
@@ -272,11 +258,6 @@ export function HistoricoAtendimentos({ user, setSnackbar }: HistoricoAtendiment
     setShowPacienteSuggestions(false);
   };
 
-  const pacientesFiltradosEdit = pacientes.filter(
-    (p) =>
-      p.nome.toLowerCase().includes(editPacienteSearch.toLowerCase()) ||
-      (p.cartaoSUS && p.cartaoSUS.includes(editPacienteSearch))
-  );
 
   // Reset paginação quando muda o filtro de profissional
   useEffect(() => {
@@ -458,83 +439,9 @@ export function HistoricoAtendimentos({ user, setSnackbar }: HistoricoAtendiment
               <div className="space-y-1 relative">
                 <Label className="text-xs text-gray-600">Paciente</Label>
 
-                {!editandoPaciente ? (
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium text-gray-800 flex-1">
-                      {editPacienteNome}
-                    </p>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setEditandoPaciente(true);
-                        setEditPacienteSearch("");
-                      }}
-                      className="cursor-pointer"
-                    >
-                      <Pencil className="w-3.5 h-3.5 mr-1" />
-                      Trocar
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-1">
-                    <div className="flex gap-2">
-                      <Input
-                        value={editPacienteSearch}
-                        onChange={(e) => {
-                          setEditPacienteSearch(e.target.value);
-                          setShowEditPacienteSugest(e.target.value.length > 0);
-                        }}
-                        onFocus={() =>
-                          setShowEditPacienteSugest(editPacienteSearch.length > 0)
-                        }
-                        onBlur={() =>
-                          setTimeout(() => setShowEditPacienteSugest(false), 150)
-                        }
-                        placeholder="Digite o nome do novo paciente..."
-                        autoComplete="off"
-                        className="bg-blue-50 border-2 border-blue-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-200 flex-1"
-                      />
-                      <Button
-                        type="button"
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setEditandoPaciente(false);
-                          setEditPacienteSearch("");
-                          setShowEditPacienteSugest(false);
-                        }}
-                        className="cursor-pointer"
-                      >
-                        Cancelar
-                      </Button>
-                    </div>
-
-                    {showEditPacienteSugest && pacientesFiltradosEdit.length > 0 && (
-                      <div className="absolute z-20 left-0 right-0 bg-white border rounded-md shadow-lg mt-1 max-h-48 overflow-y-auto">
-                        {pacientesFiltradosEdit.map((paciente) => (
-                          <div
-                            key={paciente.id}
-                            className="px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                            onMouseDown={() => {
-                              setEditPacienteId(paciente.id);
-                              setEditPacienteNome(paciente.nome);
-                              setEditandoPaciente(false);
-                              setEditPacienteSearch("");
-                              setShowEditPacienteSugest(false);
-                            }}
-                          >
-                            <p className="font-medium text-sm">{paciente.nome}</p>
-                            {paciente.cartaoSUS && (
-                              <p className="text-xs text-gray-500">SUS: {paciente.cartaoSUS}</p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                )}
+                <p className="text-sm font-medium text-gray-800">
+                  {editPacienteNome}
+                </p>
               </div>
 
               <div className="space-y-1">
