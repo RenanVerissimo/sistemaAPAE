@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { ChevronLeft, Search, Filter, X } from "lucide-react";
+import { CalendarDays, ChevronLeft, Search, Filter, X } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { Input } from "@/app/components/ui/input";
 import { Label } from "@/app/components/ui/label";
@@ -96,7 +96,10 @@ export function VerAtendimentos() {
 
   const formatarData = (data: string) => {
     if (!data) return "-";
-    const date = new Date(data);
+    const [ano, mes, dia] = data.split("T")[0].split("-").map(Number);
+    if (!ano || !mes || !dia) return data;
+
+    const date = new Date(ano, mes - 1, dia);
     return date.toLocaleDateString("pt-BR", {
       day: "2-digit",
       month: "long",
@@ -283,7 +286,10 @@ export function VerAtendimentos() {
                         {rel.especialidade}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-400">{formatarData(rel.dataConsulta)}</p>
+                    <div className="mt-3 mb-2 inline-flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm font-semibold text-amber-800 shadow-sm">
+                      <CalendarDays className="h-4 w-4" />
+                      <span>{formatarData(rel.dataConsulta)}</span>
+                    </div>
                     <p className="text-sm text-gray-700 mt-1 leading-relaxed">{rel.descricao}</p>
                   </div>
                 </CardContent>
