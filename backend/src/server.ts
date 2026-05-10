@@ -4,7 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { db } from "./config/db.js";
 import laudoRoutes from "./routes/laudoRoute.js";
-import { iniciarAgendadorBackup } from "./services/backup.service.js";
+import { executarBackupLocal, iniciarAgendadorBackup } from "./services/backup.service.js";
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -407,6 +407,19 @@ app.delete("/atendimentos/:id", async (req: Request, res: Response) => {
 });
 /* ================= LAUDOS ================= */
 app.use("/api/laudos", laudoRoutes);
+
+app.post("/backup/manual", async (req: Request, res: Response) => {
+  try {
+    await executarBackupLocal();
+    res.json({ message: "Backup realizado com sucesso" });
+  } catch (error) {
+    console.error("Erro ao executar backup manual:", error);
+    res.status(500).json({
+      message: "Erro ao executar backup manual",
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+});
 
 app.post("/login", async (req, res) => {
   try {

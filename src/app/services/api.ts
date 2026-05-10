@@ -315,6 +315,21 @@ export const excluirLaudo = async (id: number) => {
   }
 };
 
+// ==================== BACKUP ====================
+
+export const executarBackupManual = async () => {
+  const response = await fetch(`${API_BASE_URL}/backup/manual`, {
+    method: "POST",
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Erro ao executar backup manual");
+  }
+
+  return response.json();
+};
+
 export const login = async (email: string, senha: string) => {
   const response = await fetch(`${API_BASE_URL}/login`, {
     method: "POST",

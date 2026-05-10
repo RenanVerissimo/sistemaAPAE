@@ -1,6 +1,8 @@
 import fs from "fs";
 import fsp from "fs/promises";
 import path from "path";
+import { spawn } from "child_process";
+import { finished } from "stream/promises";
 import { db } from "../config/db.js";
 
 const BACKUP_FOLDER_PREFIX = "sistemaapae-backup";
@@ -16,6 +18,11 @@ type BackupConfig = {
   scheduleMinute: number;
   retentionDays: number;
   localFolder: string;
+  mysqlDumpPath: string;
+  mysqlHost: string;
+  mysqlUser: string;
+  mysqlPassword: string;
+  mysqlDatabase: string;
 };
 
 function readBackupEnv() {
@@ -67,6 +74,11 @@ function getBackupConfig(): BackupConfig {
     localFolder: env.BACKUP_LOCAL_FOLDER
       ? path.resolve(env.BACKUP_LOCAL_FOLDER)
       : "",
+    mysqlDumpPath: env.MYSQLDUMP_PATH || "mysqldump",
+    mysqlHost: env.MYSQL_HOST || "localhost",
+    mysqlUser: env.MYSQL_USER || "root",
+    mysqlPassword: env.MYSQL_PASSWORD || "",
+    mysqlDatabase: env.MYSQL_DATABASE || "",
   };
 }
 
@@ -75,6 +87,13 @@ function formatDate(date: Date) {
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
+}
+
+function formatDateTime(date: Date) {
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
+  return `${formatDate(date)}_${hours}-${minutes}-${seconds}`;
 }
 
 async function readState(): Promise<BackupState> {
@@ -91,6 +110,26 @@ async function writeState(state: BackupState) {
   await fsp.writeFile(STATE_FILE, JSON.stringify(state, null, 2));
 }
 
+async function removePathWithRetry(targetPath: string, retries = 5) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      await fsp.rm(targetPath, {
+        recursive: true,
+        force: true,
+        maxRetries: 3,
+        retryDelay: 300,
+      });
+      return;
+    } catch (error: any) {
+      if (attempt === retries || !["ENOTEMPTY", "EPERM", "EBUSY"].includes(error?.code)) {
+        throw error;
+      }
+
+      await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
+    }
+  }
+}
+
 async function exportDatabaseTables(outputDir: string) {
   await fsp.mkdir(outputDir, { recursive: true });
 
@@ -104,6 +143,56 @@ async function exportDatabaseTables(outputDir: string) {
     await fsp.writeFile(
       path.join(outputDir, `${tableName}.json`),
       JSON.stringify(rows, null, 2)
+    );
+  }
+}
+
+async function exportMysqlDump(outputDir: string, config: BackupConfig) {
+  if (!config.mysqlDatabase) {
+    throw new Error("MYSQL_DATABASE nao configurado");
+  }
+
+  await fsp.mkdir(outputDir, { recursive: true });
+
+  const outputPath = path.join(outputDir, `${config.mysqlDatabase}.sql`);
+  const outputStream = fs.createWriteStream(outputPath);
+  const args = [
+    "--host",
+    config.mysqlHost,
+    "--user",
+    config.mysqlUser,
+    "--single-transaction",
+    "--routines",
+    "--triggers",
+    "--events",
+    "--databases",
+    config.mysqlDatabase,
+  ];
+
+  const child = spawn(config.mysqlDumpPath, args, {
+    env: {
+      ...process.env,
+      MYSQL_PWD: config.mysqlPassword,
+    },
+    windowsHide: true,
+  });
+
+  let stderr = "";
+  child.stdout.pipe(outputStream);
+  child.stderr.on("data", (chunk) => {
+    stderr += chunk.toString();
+  });
+
+  const exitCode = await new Promise<number | null>((resolve, reject) => {
+    child.on("error", reject);
+    child.on("close", resolve);
+  });
+
+  await finished(outputStream);
+
+  if (exitCode !== 0) {
+    throw new Error(
+      `mysqldump falhou com codigo ${exitCode}${stderr ? `: ${stderr}` : ""}`
     );
   }
 }
@@ -142,12 +231,25 @@ async function deleteOldLocalBackups(parentDir: string, retentionDays: number) {
       continue;
     }
 
-    const match = entry.name.match(/(\d{4}-\d{2}-\d{2})$/);
+    const match = entry.name.match(/(\d{4}-\d{2}-\d{2})/);
     if (!match) continue;
 
     const backupDate = new Date(`${match[1]}T00:00:00`);
     if (backupDate < limit) {
-      await fsp.rm(path.join(parentDir, entry.name), { recursive: true, force: true });
+      await removePathWithRetry(path.join(parentDir, entry.name));
+    }
+  }
+}
+
+async function deleteLocalBackupsFromDate(parentDir: string, date: string) {
+  if (!fs.existsSync(parentDir)) return;
+
+  const entries = await fsp.readdir(parentDir, { withFileTypes: true });
+  const backupNamePrefix = `${BACKUP_FOLDER_PREFIX}-${date}`;
+
+  for (const entry of entries) {
+    if (entry.isDirectory() && entry.name.startsWith(backupNamePrefix)) {
+      await removePathWithRetry(path.join(parentDir, entry.name));
     }
   }
 }
@@ -160,24 +262,29 @@ export async function executarBackupLocal() {
     throw new Error("BACKUP_LOCAL_FOLDER nao configurado");
   }
 
-  const today = formatDate(new Date());
-  const backupName = `${BACKUP_FOLDER_PREFIX}-${today}`;
+  const now = new Date();
+  const today = formatDate(now);
+  const backupName = `${BACKUP_FOLDER_PREFIX}-${formatDateTime(now)}`;
   const tempDir = path.resolve(process.cwd(), "backups", backupName);
   const dataDir = path.join(tempDir, "dados");
+  const mysqlDir = path.join(tempDir, "mysql");
   const laudosDir = path.resolve(process.cwd(), "uploads", "laudos");
   const localBackupDir = path.join(config.localFolder, backupName);
 
-  await fsp.rm(tempDir, { recursive: true, force: true });
+  await removePathWithRetry(tempDir);
   await exportDatabaseTables(dataDir);
+  await exportMysqlDump(mysqlDir, config);
 
   await fsp.mkdir(config.localFolder, { recursive: true });
-  await fsp.rm(localBackupDir, { recursive: true, force: true });
+  await deleteLocalBackupsFromDate(config.localFolder, today);
   await fsp.mkdir(path.join(localBackupDir, "dados"), { recursive: true });
+  await fsp.mkdir(path.join(localBackupDir, "mysql"), { recursive: true });
   await fsp.mkdir(path.join(localBackupDir, "laudos"), { recursive: true });
   await copyDirectory(dataDir, path.join(localBackupDir, "dados"));
+  await copyDirectory(mysqlDir, path.join(localBackupDir, "mysql"));
   await copyDirectory(laudosDir, path.join(localBackupDir, "laudos"));
   await deleteOldLocalBackups(config.localFolder, config.retentionDays);
-  await fsp.rm(tempDir, { recursive: true, force: true });
+  await removePathWithRetry(tempDir);
   await writeState({ lastRunDate: today });
 }
 

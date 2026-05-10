@@ -249,6 +249,27 @@ export function PacientesTable() {
     });
   };
 
+  const formatarDataNascimento = (data?: string) => {
+    if (!data) return "-";
+
+    const somenteData = data.split("T")[0];
+    const partes = somenteData.split("-");
+
+    if (partes.length === 3) {
+      const [ano, mes, dia] = partes;
+      return `${dia.padStart(2, "0")}/${mes.padStart(2, "0")}/${ano}`;
+    }
+
+    const date = new Date(data);
+    if (Number.isNaN(date.getTime())) return data;
+
+    return date.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
+  };
+
   const confirmarExclusao = async () => {
     if (!pacienteExcluir) return;
 
@@ -429,7 +450,7 @@ export function PacientesTable() {
                     }
                   >
                     <td className="px-3 py-2 text-center">{pac.nome}</td>
-                    <td className="px-3 py-2 text-center">{pac.dataNasc}</td>
+                    <td className="px-3 py-2 text-center">{formatarDataNascimento(pac.dataNasc)}</td>
                     <td className="px-3 py-2 text-center">{pac.prontuario}</td>
                     <td className="px-3 py-2 text-center">{pac.cpf || "-"}</td>
                     <td className="px-3 py-2 text-center">{pac.cartaoSUS || "-"}</td>
