@@ -1,4 +1,4 @@
-import { Pencil, Trash2, Power, FileDown } from "lucide-react";
+import { FileText, Pencil, Trash2, Power, FileDown } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 
 interface TableActionsProps {
@@ -68,9 +68,9 @@ export function TableActions({
                     variant="ghost"
                     size="sm"
                     onClick={onLaudo}
-                    className="cursor-pointer border border-transparent transition-all hover:border-red-200 hover:bg-red-50 hover:shadow-sm hover:scale-105"
+                    className="cursor-pointer border border-transparent transition-all hover:border-purple-200 hover:bg-purple-50 hover:shadow-sm hover:scale-105"
                 >
-                    <Trash2 className="w-4 h-4 text-red-600" />
+                    <FileText className="w-4 h-4 text-purple-600" />
                 </Button>
             )}
 

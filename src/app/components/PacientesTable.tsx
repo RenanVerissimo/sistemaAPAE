@@ -2,7 +2,16 @@ import { useEffect, useState } from "react";
 import { Button } from "@/app/components/ui/button";
 import { Card } from "@/app/components/ui/card";
 
-import { atualizarPaciente, deletePaciente, getAllPacientes } from "../services/api";
+import {
+  atualizarPaciente,
+  deletePaciente,
+  excluirLaudo,
+  enviarLaudoPaciente,
+  getAllPacientes,
+  getLaudosPaciente,
+  getUrlLaudo,
+  type Laudo,
+} from "../services/api";
 import SnackbarComponent from "./SnackbarComponent";
 import { TableActions } from "./tableActions";
 import NavigateNextIcon from '@mui/icons-material/NavigateNext';
@@ -22,6 +31,13 @@ export function PacientesTable() {
   const [pacienteEditar, setPacienteEditar] = useState<Paciente | null>(null);
   const [pacienteAtivoInativo, setPacienteAtivoInativo] = useState<Paciente | null>(null);
   const [modalPacienteAtivoInativo, setModalPacienteAtivoInativo] = useState(false);
+  const [pacienteLaudos, setPacienteLaudos] = useState<Paciente | null>(null);
+  const [modoModalLaudos, setModoModalLaudos] = useState<"gerenciar" | "baixar">("gerenciar");
+  const [laudos, setLaudos] = useState<Laudo[]>([]);
+  const [laudoFile, setLaudoFile] = useState<File | null>(null);
+  const [observacaoLaudo, setObservacaoLaudo] = useState("");
+  const [carregandoLaudos, setCarregandoLaudos] = useState(false);
+  const [enviandoLaudo, setEnviandoLaudo] = useState(false);
   const [filtroStatus, setFiltroStatus] = useState<"Todos" | "Ativo" | "Inativo">("Ativo");
 
   const [paginaAtual, setPaginaAtual] = useState(1);
@@ -107,10 +123,115 @@ export function PacientesTable() {
     setPacientes(data);
   };
 
+  const carregarLaudos = async (pacienteId: number) => {
+    setCarregandoLaudos(true);
+    try {
+      const data = await getLaudosPaciente(pacienteId);
+      setLaudos(data);
+    } finally {
+      setCarregandoLaudos(false);
+    }
+  };
+
+  const abrirModalLaudos = async (paciente: Paciente) => {
+    setPacienteLaudos(paciente);
+    setModoModalLaudos("gerenciar");
+    setLaudoFile(null);
+    setObservacaoLaudo("");
+    await carregarLaudos(paciente.id);
+  };
+
+  const abrirModalDownloadLaudos = async (paciente: Paciente) => {
+    setPacienteLaudos(paciente);
+    setModoModalLaudos("baixar");
+    setLaudoFile(null);
+    setObservacaoLaudo("");
+    await carregarLaudos(paciente.id);
+  };
+
+  const fecharModalLaudos = () => {
+    setPacienteLaudos(null);
+    setLaudos([]);
+    setLaudoFile(null);
+    setObservacaoLaudo("");
+  };
+
+  const confirmarEnvioLaudo = async () => {
+    if (!pacienteLaudos || !laudoFile) return;
+
+    setEnviandoLaudo(true);
+    try {
+      await enviarLaudoPaciente(pacienteLaudos.id, laudoFile, observacaoLaudo);
+      setSnackbar({
+        open: true,
+        message: "Laudo enviado com sucesso!",
+        severity: "success",
+      });
+      setLaudoFile(null);
+      setObservacaoLaudo("");
+      await carregarLaudos(pacienteLaudos.id);
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: "Erro ao enviar laudo.",
+        severity: "error",
+      });
+    } finally {
+      setEnviandoLaudo(false);
+    }
+  };
+
+  const baixarLaudo = (laudo: Laudo) => {
+    const link = document.createElement("a");
+    link.href = getUrlLaudo(laudo.id, true);
+    link.download = laudo.nomeArquivo;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  };
+
+  const confirmarExclusaoLaudo = async (laudo: Laudo) => {
+    if (!window.confirm(`Deseja excluir o laudo "${laudo.nomeArquivo}"?`)) return;
+
+    try {
+      await excluirLaudo(laudo.id);
+      setSnackbar({
+        open: true,
+        message: "Laudo excluido com sucesso!",
+        severity: "success",
+      });
+      if (pacienteLaudos) {
+        await carregarLaudos(pacienteLaudos.id);
+      }
+    } catch (error) {
+      setSnackbar({
+        open: true,
+        message: "Erro ao excluir laudo.",
+        severity: "error",
+      });
+    }
+  };
+
   const limitarTexto = (texto?: string) => {
     if (!texto) return "-";
     if (texto.length <= 45) return texto;
     return texto.substring(0, 45) + "...";
+  };
+
+  const formatarTamanhoArquivo = (bytes: number) => {
+    if (!bytes) return "0 KB";
+    if (bytes < 1024 * 1024) return `${Math.ceil(bytes / 1024)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const formatarDataLaudo = (data: string) => {
+    if (!data) return "-";
+    const date = new Date(data);
+    return date.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
   };
 
   const confirmarExclusao = async () => {
@@ -328,12 +449,13 @@ export function PacientesTable() {
                       onClick={(e) => e.stopPropagation()}
                     >
                       <TableActions
-                        onDownload={() => console.log("download LAUDO", pac.id)}
+                        onDownload={() => abrirModalDownloadLaudos(pac)}
                         onPower={() => {
                           setPacienteAtivoInativo(pac);
                           setModalPacienteAtivoInativo(true);
                         }}
                         onEdit={() => setPacienteEditar(pac)}
+                        onLaudo={() => abrirModalLaudos(pac)}
                         onDelete={() => {
                           setPacienteExcluir(pac);
                           setExcluirModal(true);
@@ -683,6 +805,120 @@ export function PacientesTable() {
         </div>
       )}
 
+      {pacienteLaudos && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full shadow-lg space-y-5">
+            <div>
+              <h2 className="text-lg font-semibold">
+                {modoModalLaudos === "baixar" ? "Laudos para baixar" : "Laudos do Paciente"}
+              </h2>
+              <p className="text-sm text-gray-500">{pacienteLaudos.nome}</p>
+            </div>
+
+            {modoModalLaudos === "gerenciar" && (
+              <div className="rounded-lg border border-purple-200 bg-purple-50 p-4 space-y-3">
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Adicionar laudo em PDF</label>
+                  <input
+                    type="file"
+                    accept="application/pdf,.pdf"
+                    onChange={(e) => setLaudoFile(e.target.files?.[0] || null)}
+                    className="w-full rounded border bg-white px-3 py-2 text-sm"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <label className="text-sm font-medium">Observacao</label>
+                  <input
+                    value={observacaoLaudo}
+                    onChange={(e) => setObservacaoLaudo(e.target.value)}
+                    placeholder="Ex: laudo neurologico, avaliacao inicial..."
+                    className="w-full rounded border bg-white px-3 py-2 text-sm"
+                  />
+                </div>
+
+                <div className="flex justify-end">
+                  <Button
+                    onClick={confirmarEnvioLaudo}
+                    disabled={!laudoFile || enviandoLaudo}
+                    className="bg-purple-600 hover:bg-purple-700 text-white"
+                  >
+                    {enviandoLaudo ? "Enviando..." : "Enviar laudo"}
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-gray-700">Laudos anexados</h3>
+
+              {carregandoLaudos && (
+                <p className="text-sm text-gray-500">Carregando laudos...</p>
+              )}
+
+              {!carregandoLaudos && laudos.length === 0 && (
+                <div className="rounded border border-dashed p-4 text-center text-sm text-gray-500">
+                  Nenhum laudo anexado para este paciente.
+                </div>
+              )}
+
+              {!carregandoLaudos && laudos.length > 0 && (
+                <div className="max-h-64 overflow-y-auto rounded border divide-y">
+                  {laudos.map((laudo) => (
+                    <div
+                      key={laudo.id}
+                      className="flex items-center justify-between gap-3 p-3"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-800 truncate">
+                          {laudo.nomeArquivo}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          {formatarDataLaudo(laudo.createdAt)} - {formatarTamanhoArquivo(laudo.tamanho)}
+                          {laudo.observacao ? ` - ${laudo.observacao}` : ""}
+                        </p>
+                      </div>
+
+                      <div className="flex gap-2 shrink-0">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(getUrlLaudo(laudo.id), "_blank")}
+                        >
+                          Abrir
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => baixarLaudo(laudo)}
+                        >
+                          Baixar
+                        </Button>
+                        {modoModalLaudos === "gerenciar" && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => confirmarExclusaoLaudo(laudo)}
+                            className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                          >
+                            Excluir
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end">
+              <Button variant="outline" onClick={fecharModalLaudos}>
+                Fechar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <SnackbarComponent
         open={snackbar.open}

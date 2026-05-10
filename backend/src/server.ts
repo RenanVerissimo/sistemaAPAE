@@ -15,6 +15,39 @@ const PORT = 3000;
 app.use(cors());
 app.use(express.json());
 
+async function garantirTabelaLaudos() {
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS laudos (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      paciente_id INT NOT NULL,
+      nome_arquivo VARCHAR(255) NOT NULL,
+      caminho_arquivo VARCHAR(500) NOT NULL,
+      tamanho INT NOT NULL,
+      tipo VARCHAR(100) NOT NULL,
+      observacao TEXT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      INDEX idx_laudos_paciente_id (paciente_id)
+    )
+  `);
+
+  const [columns]: any = await db.query("SHOW COLUMNS FROM laudos");
+  const columnNames = new Set(columns.map((column: any) => column.Field));
+
+  if (!columnNames.has("observacao")) {
+    await db.query("ALTER TABLE laudos ADD COLUMN observacao TEXT NULL");
+  }
+
+  if (!columnNames.has("created_at")) {
+    await db.query(
+      "ALTER TABLE laudos ADD COLUMN created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP"
+    );
+  }
+
+  await db.query("ALTER TABLE laudos MODIFY caminho_arquivo VARCHAR(500) NOT NULL");
+  await db.query("ALTER TABLE laudos MODIFY tamanho INT NOT NULL");
+  await db.query("ALTER TABLE laudos MODIFY tipo VARCHAR(100) NOT NULL");
+}
+
 /* ================= PACIENTES ================= */
 
 app.get("/pacientes", async (req: Request, res: Response) => {
@@ -44,7 +77,7 @@ app.post("/pacientes", async (req: Request, res: Response) => {
       status, descricao, qtdConsultasRealizadas,
     } = req.body;
 
-    await db.query(
+    const [result]: any = await db.query(
       `INSERT INTO pacientes
         (nome, cpf, prontuario, dataNasc, cartaoSUS, status, descricao, qtdConsultasRealizadas)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
@@ -53,7 +86,10 @@ app.post("/pacientes", async (req: Request, res: Response) => {
         status ?? "Ativo", descricao ?? null, qtdConsultasRealizadas ?? 0,
       ]
     );
-    res.status(201).json({ message: "Paciente cadastrado com sucesso" });
+    res.status(201).json({
+      message: "Paciente cadastrado com sucesso",
+      id: result.insertId,
+    });
   } catch (error) {
     console.error("Erro ao cadastrar paciente:", error);
     res.status(500).json({ message: "Erro interno do servidor" });
@@ -369,7 +405,7 @@ app.delete("/atendimentos/:id", async (req: Request, res: Response) => {
   }
 });
 /* ================= LAUDOS ================= */
-//app.use("/api/laudos", laudoRoutes);
+app.use("/api/laudos", laudoRoutes);
 
 app.post("/login", async (req, res) => {
   try {
@@ -395,6 +431,11 @@ app.use((req, res) => {
 });
 
 
+
+garantirTabelaLaudos().catch((error) => {
+  console.error("Erro ao preparar tabela de laudos:", error);
+  process.exit(1);
+});
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);

@@ -7,7 +7,7 @@ import { Textarea } from '@/app/components/ui/textarea';
 import { ChevronLeft, FileDown, FileText, X } from 'lucide-react';
 
 import { useNavigate } from 'react-router-dom';
-import { cadastrarPaciente } from '@/app/services/api';
+import { cadastrarPaciente, enviarLaudoPaciente } from '@/app/services/api';
 import SnackbarComponent from '../../SnackbarComponent';
 import { Paciente } from '../../interfaces/interfaces';
 
@@ -54,7 +54,11 @@ export function CadastroPacientes() {
     };
 
     try {
-      await cadastrarPaciente(novoPaciente);
+      const pacienteCadastrado = await cadastrarPaciente(novoPaciente);
+
+      if (laudoFile && pacienteCadastrado?.id) {
+        await enviarLaudoPaciente(pacienteCadastrado.id, laudoFile, "Laudo inicial");
+      }
 
       if (cadastrarOutro) {
         // limpa o formulário e mostra o snackbar aqui mesmo
@@ -181,16 +185,16 @@ export function CadastroPacientes() {
                   <FileDown className="w-5 h-5 text-blue-600" />
                   <div className="flex flex-col text-sm">
                     <span className="font-medium text-gray-700">
-                      Anexar laudo
+                      Anexar laudo em PDF
                     </span>
-                    <span className="text-gray-500">
+                    <span className="hidden">
                       PDF, JPG ou PNG (até 5MB)
                     </span>
                   </div>
                   <input
                     ref={fileInputRef}
                     type="file"
-                    accept=".pdf,.jpg,.jpeg,.png"
+                    accept="application/pdf,.pdf"
                     className="hidden"
                     onChange={(e) => setLaudoFile(e.target.files?.[0] || null)}
                   />

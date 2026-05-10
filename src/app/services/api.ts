@@ -251,6 +251,70 @@ export const deleteAtendimento = async (id: number, profissionalId: number) => {
   }
 };
 
+// ==================== LAUDOS ====================
+
+export interface Laudo {
+  id: number;
+  pacienteId: number;
+  nomeArquivo: string;
+  tamanho: number;
+  tipo: string;
+  observacao?: string | null;
+  createdAt: string;
+}
+
+export const getLaudosPaciente = async (pacienteId: number): Promise<Laudo[]> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/laudos/paciente/${pacienteId}`);
+    if (!response.ok) throw new Error("Erro ao buscar laudos");
+    return await response.json();
+  } catch (error) {
+    console.error("Erro ao buscar laudos:", error);
+    return [];
+  }
+};
+
+export const enviarLaudoPaciente = async (
+  pacienteId: number,
+  file: File,
+  observacao?: string
+) => {
+  try {
+    const formData = new FormData();
+    formData.append("pdf", file);
+    if (observacao) formData.append("observacao", observacao);
+
+    const response = await fetch(`${API_BASE_URL}/api/laudos/${pacienteId}`, {
+      method: "POST",
+      body: formData,
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || "Erro ao enviar laudo");
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Erro ao enviar laudo:", error);
+    throw error;
+  }
+};
+
+export const getUrlLaudo = (id: number, download = false) =>
+  `${API_BASE_URL}/api/laudos/arquivo/${id}${download ? "?download=1" : ""}`;
+
+export const excluirLaudo = async (id: number) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/api/laudos/${id}`, {
+      method: "DELETE",
+    });
+    if (!response.ok) throw new Error("Erro ao excluir laudo");
+    return await response.json();
+  } catch (error) {
+    console.error("Erro ao excluir laudo:", error);
+    throw error;
+  }
+};
+
 export const login = async (email: string, senha: string) => {
   const response = await fetch(`${API_BASE_URL}/login`, {
     method: "POST",
