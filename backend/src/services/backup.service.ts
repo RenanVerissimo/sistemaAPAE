@@ -18,19 +18,54 @@ type BackupConfig = {
   localFolder: string;
 };
 
+function readBackupEnv() {
+  const envPath = path.resolve(process.cwd(), ".env");
+  const values: Record<string, string> = {};
+
+  if (!fs.existsSync(envPath)) {
+    return values;
+  }
+
+  const lines = fs.readFileSync(envPath, "utf8").split(/\r?\n/);
+
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed || trimmed.startsWith("#")) continue;
+
+    const separatorIndex = trimmed.indexOf("=");
+    if (separatorIndex === -1) continue;
+
+    const key = trimmed.slice(0, separatorIndex).trim();
+    let value = trimmed.slice(separatorIndex + 1).trim();
+
+    if (
+      (value.startsWith('"') && value.endsWith('"')) ||
+      (value.startsWith("'") && value.endsWith("'"))
+    ) {
+      value = value.slice(1, -1);
+    }
+
+    values[key] = value;
+  }
+
+  return values;
+}
+
 function parseNumber(value: string | undefined, fallback: number) {
   const parsed = Number(value);
   return Number.isFinite(parsed) ? parsed : fallback;
 }
 
 function getBackupConfig(): BackupConfig {
+  const env = { ...process.env, ...readBackupEnv() };
+
   return {
-    enabled: process.env.BACKUP_ENABLED !== "false",
-    scheduleHour: parseNumber(process.env.BACKUP_HOUR, 17),
-    scheduleMinute: parseNumber(process.env.BACKUP_MINUTE, 0),
-    retentionDays: parseNumber(process.env.BACKUP_RETENTION_DAYS, 7),
-    localFolder: process.env.BACKUP_LOCAL_FOLDER
-      ? path.resolve(process.env.BACKUP_LOCAL_FOLDER)
+    enabled: env.BACKUP_ENABLED !== "false",
+    scheduleHour: parseNumber(env.BACKUP_HOUR, 17),
+    scheduleMinute: parseNumber(env.BACKUP_MINUTE, 0),
+    retentionDays: parseNumber(env.BACKUP_RETENTION_DAYS, 7),
+    localFolder: env.BACKUP_LOCAL_FOLDER
+      ? path.resolve(env.BACKUP_LOCAL_FOLDER)
       : "",
   };
 }
@@ -155,7 +190,7 @@ function reachedBackupTime(now: Date, config: BackupConfig) {
 }
 
 export function iniciarAgendadorBackup() {
-  const config = getBackupConfig();
+  let config = getBackupConfig();
 
   if (!config.enabled) {
     console.log("Backup local desativado");
@@ -172,6 +207,8 @@ export function iniciarAgendadorBackup() {
   );
 
   const verificarBackup = async () => {
+    config = getBackupConfig();
+
     const now = new Date();
     const today = formatDate(now);
     const state = await readState();
