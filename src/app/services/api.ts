@@ -112,7 +112,7 @@ export const cadastrarProfissional = async (data: {
   outraEspecialidade?: string;
   registroProfissional?: string;
   rolee: string;
-  qtdAtendimentos: number;
+  qtdAtendimentos?: number;
 }) => {
   try {
     const response = await fetch(`${API_BASE_URL}/profissionais`, {

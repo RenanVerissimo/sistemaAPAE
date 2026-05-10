@@ -331,7 +331,12 @@ export default function ProfissionalCard() {
                                         }
                                     >
                                         <td className="px-4 py-3 text-center">{prof.nome}</td>
-                                        <td className="px-4 py-3 text-center">{prof.email}</td>
+                                        <td
+                                            className="px-4 py-3 text-center cursor-text select-text"
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            {prof.email}
+                                        </td>
                                         <td className="px-4 py-3 text-center">
                                             <span
                                                 className={`px-2 py-1 rounded-md text-xs font-medium ${getEspecialidadeBadgeColor(prof.especialidade)}`}

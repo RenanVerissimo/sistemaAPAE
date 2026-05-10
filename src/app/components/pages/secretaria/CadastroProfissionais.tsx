@@ -21,7 +21,6 @@ export function CadastroProfissionais() {
   const [registroProfissional, setRegistroProfissional] = useState('');
   const [dataNasc, setDataNasc] = useState('');
   const [outraEspecialidade, setOutraEspecialidade] = useState('');
-  const [qtdAtendimentos, setQtdAtendimentos] = useState(0);
   const [salvando, setSalvando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
@@ -50,7 +49,6 @@ export function CadastroProfissionais() {
         especialidade: especialidadeFinal,
         registroProfissional,
         dataNasc,
-        qtdAtendimentos,
         rolee: '',
       });
 
@@ -248,16 +246,6 @@ export function CadastroProfissionais() {
                 placeholder="Ex: CRP 06/123456, CRM 123456, CRFa 1234"
                 value={registroProfissional}
                 onChange={e => setRegistroProfissional(e.target.value)}
-              />
-            </div>
-
-            <div className="space-y-2">
-              <Label>Quantidade Atendimento</Label>
-              <Input
-                type="number"
-                min={0}
-                value={qtdAtendimentos}
-                onChange={e => setQtdAtendimentos(e.target.value ? Number(e.target.value) : 0)}
               />
             </div>
 
