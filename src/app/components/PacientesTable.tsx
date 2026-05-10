@@ -34,6 +34,8 @@ export function PacientesTable() {
   const [pacienteLaudos, setPacienteLaudos] = useState<Paciente | null>(null);
   const [modoModalLaudos, setModoModalLaudos] = useState<"gerenciar" | "baixar">("gerenciar");
   const [laudos, setLaudos] = useState<Laudo[]>([]);
+  const [modalExcluirLaudo, setModalExcluirLaudo] = useState(false);
+  const [laudoExcluir, setLaudoExcluir] = useState<Laudo | null>(null);
   const [laudoFile, setLaudoFile] = useState<File | null>(null);
   const [observacaoLaudo, setObservacaoLaudo] = useState("");
   const [carregandoLaudos, setCarregandoLaudos] = useState(false);
@@ -152,6 +154,8 @@ export function PacientesTable() {
   const fecharModalLaudos = () => {
     setPacienteLaudos(null);
     setLaudos([]);
+    setModalExcluirLaudo(false);
+    setLaudoExcluir(null);
     setLaudoFile(null);
     setObservacaoLaudo("");
   };
@@ -190,11 +194,21 @@ export function PacientesTable() {
     link.remove();
   };
 
-  const confirmarExclusaoLaudo = async (laudo: Laudo) => {
-    if (!window.confirm(`Deseja excluir o laudo "${laudo.nomeArquivo}"?`)) return;
+  const abrirModalExclusaoLaudo = (laudo: Laudo) => {
+    setLaudoExcluir(laudo);
+    setModalExcluirLaudo(true);
+  };
+
+  const fecharModalExclusaoLaudo = () => {
+    setModalExcluirLaudo(false);
+    setLaudoExcluir(null);
+  };
+
+  const confirmarExclusaoLaudo = async () => {
+    if (!laudoExcluir) return;
 
     try {
-      await excluirLaudo(laudo.id);
+      await excluirLaudo(laudoExcluir.id);
       setSnackbar({
         open: true,
         message: "Laudo excluido com sucesso!",
@@ -203,6 +217,7 @@ export function PacientesTable() {
       if (pacienteLaudos) {
         await carregarLaudos(pacienteLaudos.id);
       }
+      fecharModalExclusaoLaudo();
     } catch (error) {
       setSnackbar({
         open: true,
@@ -863,7 +878,7 @@ export function PacientesTable() {
               )}
 
               {!carregandoLaudos && laudos.length > 0 && (
-                <div className="max-h-64 overflow-y-auto rounded border divide-y">
+                <div className="max-h-[360px] overflow-y-auto rounded border divide-y">
                   {laudos.map((laudo) => (
                     <div
                       key={laudo.id}
@@ -898,7 +913,7 @@ export function PacientesTable() {
                           <Button
                             variant="outline"
                             size="sm"
-                            onClick={() => confirmarExclusaoLaudo(laudo)}
+                            onClick={() => abrirModalExclusaoLaudo(laudo)}
                             className="text-red-600 hover:bg-red-50 hover:text-red-700"
                           >
                             Excluir
@@ -914,6 +929,46 @@ export function PacientesTable() {
             <div className="flex justify-end">
               <Button variant="outline" onClick={fecharModalLaudos}>
                 Fechar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {modalExcluirLaudo && laudoExcluir && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-[60] p-4">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full shadow-lg">
+            <div className="flex justify-center mb-3">
+              <ErrorOutlineIcon className="text-red-500" sx={{ fontSize: 52 }} />
+            </div>
+
+            <h2 className="text-lg font-semibold mb-4 text-center">
+              Confirmar exclusao?
+            </h2>
+
+            <div className="text-center text-gray-700 border border-red-300 rounded-lg px-4 py-3 bg-red-50">
+              <p>Deseja realmente excluir o laudo:</p>
+              <p className="font-bold text-base break-all">
+                {laudoExcluir.nomeArquivo}
+              </p>
+            </div>
+
+            <div className="text-center mt-8">
+              <p className="text-sm font-semibold text-red-600">
+                Esta acao nao podera ser desfeita.
+              </p>
+            </div>
+
+            <div className="flex justify-end gap-2 mt-6">
+              <Button variant="outline" onClick={fecharModalExclusaoLaudo}>
+                Cancelar
+              </Button>
+
+              <Button
+                className="bg-red-600 hover:bg-red-700 text-white"
+                onClick={confirmarExclusaoLaudo}
+              >
+                Excluir
               </Button>
             </div>
           </div>

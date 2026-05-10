@@ -4,6 +4,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import { db } from "./config/db.js";
 import laudoRoutes from "./routes/laudoRoute.js";
+import { iniciarAgendadorBackup } from "./services/backup.service.js";
 
 
 const __filename = fileURLToPath(import.meta.url);
@@ -436,6 +437,8 @@ garantirTabelaLaudos().catch((error) => {
   console.error("Erro ao preparar tabela de laudos:", error);
   process.exit(1);
 });
+
+iniciarAgendadorBackup();
 
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);

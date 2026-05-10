@@ -1,13 +1,18 @@
-import { useEffect, useRef, useState } from "react";
-import { getAllPacientes } from "@/app/services/api";
+import { useEffect, useState } from "react";
+import {
+  getAllPacientes,
+  getLaudosPaciente,
+  getUrlLaudo,
+  type Laudo,
+} from "@/app/services/api";
 import { Button } from "@/app/components/ui/button";
-import { Card, CardContent} from "@/app/components/ui/card";
+import { Card, CardContent } from "@/app/components/ui/card";
 import { Input } from "@/app/components/ui/input";
 import {
   ChevronLeft,
   FileDown,
+  FileText,
   Search as SearchIcon,
-  ChevronDown,
 } from "lucide-react";
 import { Paciente } from "../../interfaces/interfaces";
 
@@ -27,8 +32,9 @@ export default function Laudos({ onBack, setSnackbar }: LaudosProps) {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [pagina, setPagina] = useState(1);
-  const [menuAberto, setMenuAberto] = useState<number | null>(null);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const [pacienteLaudos, setPacienteLaudos] = useState<Paciente | null>(null);
+  const [laudos, setLaudos] = useState<Laudo[]>([]);
+  const [carregandoLaudos, setCarregandoLaudos] = useState(false);
   const porPagina = 10;
 
   useEffect(() => {
@@ -50,16 +56,6 @@ export default function Laudos({ onBack, setSnackbar }: LaudosProps) {
     fetchPacientes();
   }, [setSnackbar]);
 
-  useEffect(() => {
-    const handleClickFora = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
-        setMenuAberto(null);
-      }
-    };
-    document.addEventListener("mousedown", handleClickFora);
-    return () => document.removeEventListener("mousedown", handleClickFora);
-  }, []);
-
   const pacientesFiltrados = pacientes.filter(
     (p) =>
       p.nome.toLowerCase().includes(search.toLowerCase()) ||
@@ -72,45 +68,49 @@ export default function Laudos({ onBack, setSnackbar }: LaudosProps) {
   const pacientesPaginados = pacientesFiltrados.slice(indexPrimeiro, indexUltimo);
   const totalPaginas = Math.ceil(pacientesFiltrados.length / porPagina);
 
-  const baixarUltimoLaudo = (paciente: Paciente) => {
-    setMenuAberto(null);
-    if (paciente.laudoFile) {
-      const url = URL.createObjectURL(paciente.laudoFile);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `laudo_${paciente.nome}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
-    } else {
-      setSnackbar({
-        open: true,
-        message: "Paciente não possui laudo anexado",
-        severity: "error",
-      });
+  const carregarLaudos = async (pacienteId: number) => {
+    setCarregandoLaudos(true);
+    try {
+      const data = await getLaudosPaciente(pacienteId);
+      setLaudos(data);
+    } finally {
+      setCarregandoLaudos(false);
     }
   };
 
-  const baixarTodosLaudos = (paciente: Paciente) => {
-    setMenuAberto(null);
-    if (paciente.laudoFile) {
-      const url = URL.createObjectURL(paciente.laudoFile);
-      const a = document.createElement("a");
-      a.href = url;
-      a.download = `todos_laudos_${paciente.nome}.pdf`;
-      a.click();
-      URL.revokeObjectURL(url);
-      setSnackbar({
-        open: true,
-        message: "Download iniciado (apenas 1 laudo por paciente disponível atualmente)",
-        severity: "info",
-      });
-    } else {
-      setSnackbar({
-        open: true,
-        message: "Paciente não possui laudos anexados",
-        severity: "error",
-      });
-    }
+  const abrirModalLaudos = async (paciente: Paciente) => {
+    setPacienteLaudos(paciente);
+    await carregarLaudos(paciente.id);
+  };
+
+  const fecharModalLaudos = () => {
+    setPacienteLaudos(null);
+    setLaudos([]);
+  };
+
+  const baixarLaudo = (laudo: Laudo) => {
+    const link = document.createElement("a");
+    link.href = getUrlLaudo(laudo.id, true);
+    link.download = laudo.nomeArquivo;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+  };
+
+  const formatarTamanhoArquivo = (bytes: number) => {
+    if (!bytes) return "0 KB";
+    if (bytes < 1024 * 1024) return `${Math.ceil(bytes / 1024)} KB`;
+    return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const formatarDataLaudo = (data: string) => {
+    if (!data) return "-";
+    const date = new Date(data);
+    return date.toLocaleDateString("pt-BR", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    });
   };
 
   return (
@@ -158,10 +158,10 @@ export default function Laudos({ onBack, setSnackbar }: LaudosProps) {
                     <tr>
                       <th className="px-4 py-3 text-left font-semibold">Nome</th>
                       <th className="px-4 py-3 text-center font-semibold">Data Nasc.</th>
-                      <th className="px-4 py-3 text-center font-semibold">Prontuário</th>
+                      <th className="px-4 py-3 text-center font-semibold">Prontuario</th>
                       <th className="px-4 py-3 text-center font-semibold">CPF</th>
-                      <th className="px-4 py-3 text-center font-semibold">Cartão SUS</th>
-                      <th className="px-4 py-3 text-center font-semibold">Ações</th>
+                      <th className="px-4 py-3 text-center font-semibold">Cartao SUS</th>
+                      <th className="px-4 py-3 text-center font-semibold">Acoes</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -180,40 +180,15 @@ export default function Laudos({ onBack, setSnackbar }: LaudosProps) {
                           <td className="px-4 py-3 text-center">{pac.cpf || "-"}</td>
                           <td className="px-4 py-3 text-center">{pac.cartaoSUS || "-"}</td>
                           <td className="px-4 py-3 text-center">
-                            <div
-                              className="relative inline-block"
-                              ref={menuAberto === pac.id ? menuRef : null}
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="cursor-pointer border border-transparent transition-all hover:border-blue-200 hover:bg-blue-50 hover:shadow-sm"
+                              onClick={() => abrirModalLaudos(pac)}
                             >
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="cursor-pointer"
-                                onClick={() =>
-                                  setMenuAberto(menuAberto === pac.id ? null : pac.id)
-                                }
-                              >
-                                <FileDown className="w-4 h-4 mr-1" />
-                                Baixar
-                                <ChevronDown className="w-3 h-3 ml-1" />
-                              </Button>
-
-                              {menuAberto === pac.id && (
-                                <div className="absolute right-0 mt-1 w-52 bg-white border rounded-md shadow-lg z-20">
-                                  <button
-                                    className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 cursor-pointer"
-                                    onClick={() => baixarUltimoLaudo(pac)}
-                                  >
-                                    Baixar último laudo
-                                  </button>
-                                  <button
-                                    className="w-full text-left px-3 py-2 text-sm hover:bg-gray-100 cursor-pointer border-t"
-                                    onClick={() => baixarTodosLaudos(pac)}
-                                  >
-                                    Baixar todos os laudos
-                                  </button>
-                                </div>
-                              )}
-                            </div>
+                              <FileDown className="w-4 h-4 mr-1 text-blue-600" />
+                              Laudos
+                            </Button>
                           </td>
                         </tr>
                       ))
@@ -235,7 +210,7 @@ export default function Laudos({ onBack, setSnackbar }: LaudosProps) {
                   Anterior
                 </Button>
                 <span className="text-sm text-gray-600">
-                  Página {pagina} de {totalPaginas}
+                  Pagina {pagina} de {totalPaginas}
                 </span>
                 <Button
                   variant="outline"
@@ -244,13 +219,85 @@ export default function Laudos({ onBack, setSnackbar }: LaudosProps) {
                   disabled={pagina === totalPaginas}
                   className="cursor-pointer"
                 >
-                  Próxima
+                  Proxima
                 </Button>
               </div>
             )}
           </CardContent>
         </Card>
       </div>
+
+      {pacienteLaudos && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg p-6 max-w-2xl w-full shadow-lg space-y-5">
+            <div>
+              <h2 className="text-lg font-semibold">Laudos do Paciente</h2>
+              <p className="text-sm text-gray-500">{pacienteLaudos.nome}</p>
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="text-sm font-semibold text-gray-700">Laudos anexados</h3>
+
+              {carregandoLaudos && (
+                <p className="text-sm text-gray-500">Carregando laudos...</p>
+              )}
+
+              {!carregandoLaudos && laudos.length === 0 && (
+                <div className="rounded border border-dashed p-4 text-center text-sm text-gray-500">
+                  Nenhum laudo anexado para este paciente.
+                </div>
+              )}
+
+              {!carregandoLaudos && laudos.length > 0 && (
+                <div className="max-h-[360px] overflow-y-auto rounded border divide-y">
+                  {laudos.map((laudo) => (
+                    <div
+                      key={laudo.id}
+                      className="flex items-center justify-between gap-3 p-3"
+                    >
+                      <div className="min-w-0 flex items-start gap-2">
+                        <FileText className="w-4 h-4 mt-0.5 text-red-600 shrink-0" />
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium text-gray-800 truncate">
+                            {laudo.nomeArquivo}
+                          </p>
+                          <p className="text-xs text-gray-500">
+                            {formatarDataLaudo(laudo.createdAt)} - {formatarTamanhoArquivo(laudo.tamanho)}
+                            {laudo.observacao ? ` - ${laudo.observacao}` : ""}
+                          </p>
+                        </div>
+                      </div>
+
+                      <div className="flex gap-2 shrink-0">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => window.open(getUrlLaudo(laudo.id), "_blank")}
+                        >
+                          Abrir
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => baixarLaudo(laudo)}
+                        >
+                          Baixar
+                        </Button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end">
+              <Button variant="outline" onClick={fecharModalLaudos}>
+                Fechar
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
