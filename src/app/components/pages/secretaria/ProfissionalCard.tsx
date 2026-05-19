@@ -37,7 +37,6 @@ function gerarSenhaProfissional(prof: { nome?: string; dataNasc?: string; email?
     const anoCurto = ano.slice(-2);
     const mes = prof.dataNasc ? prof.dataNasc.split("-")[1] || "01" : "01";
     const dia = prof.dataNasc ? prof.dataNasc.split("-")[2]?.split("T")[0] || "01" : "01";
-    const usuarioEmail = capitalizar((prof.email || "").split("@")[0].replace(/[^a-zA-Z0-9]/g, ""));
 
     const simbolos = ["@", "#", "$", "!", "&", "*"];
     const sim = () => simbolos[Math.floor(Math.random() * simbolos.length)];
@@ -268,7 +267,8 @@ export default function ProfissionalCard() {
 
     return (
         <>
-            <div className="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div className="max-w-7xl mx-auto px-4 py-4 space-y-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 
                 {/* ESQUERDA */}
                 <div className="flex items-center gap-2">
@@ -282,7 +282,7 @@ export default function ProfissionalCard() {
                 </div>
 
                 {/* DIREITA */}
-                <div className="flex gap-2">
+                <div className="flex flex-wrap gap-2">
                     <Button
                         className="bg-blue-600 hover:bg-blue-700 text-white"
                         onClick={() => navigate("/SecretariaDashboard/ProfissionalCard/VerAtendimentos")}
@@ -301,17 +301,18 @@ export default function ProfissionalCard() {
                         Cadastrar
                     </Button>
                 </div>
+                </div>
             </div>
 
-            <div className="max-w-7xl mx-auto ">
-                <Card>
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
+            <div className="max-w-7xl mx-auto px-4">
+                <Card className="rounded-xl overflow-hidden shadow-md border border-gray-200">
+                    <div className="w-full overflow-x-auto">
+                        <table className="w-full min-w-[860px] table-fixed text-sm">
                             <thead className="bg-gray-300 border-b">
                                 <tr>
-                                    <th className="px-4 py-3 text-center font-semibold">Nome</th>
-                                    <th className="px-4 py-3 text-center font-semibold">Email</th>
-                                    <th className="px-4 py-3 text-center font-semibold">Especialidade</th>
+                                    <th className="w-[20%] px-3 py-2 text-center font-semibold">Nome</th>
+                                    <th className="w-[24%] px-3 py-2 text-center font-semibold">Email</th>
+                                    <th className="w-[16%] px-3 py-2 text-center font-semibold">Especialidade</th>
                                     <th className="px-4 py-3 text-center font-semibold">Atendimentos (mês)</th>
                                     <th className="px-4 py-3 text-center font-semibold">Número de Registro Profissional</th>
                                     <th className="px-4 py-3 text-center font-semibold">Ações</th>
@@ -321,7 +322,7 @@ export default function ProfissionalCard() {
                                 {profissionais.map((prof) => (
                                     <tr
                                         key={prof.id}
-                                        className="border-b hover:bg-gray-200 cursor-pointer"
+                                        className="border-b hover:bg-gray-200 h-[48px] cursor-pointer"
                                         onClick={() =>
                                             navigate("/SecretariaDashboard/PacienteCard/VerAtendimentos", {
                                                 state: {
@@ -330,24 +331,24 @@ export default function ProfissionalCard() {
                                             })
                                         }
                                     >
-                                        <td className="px-4 py-3 text-center">{prof.nome}</td>
+                                        <td className="px-3 py-2 text-center break-words">{prof.nome}</td>
                                         <td
-                                            className="px-4 py-3 text-center cursor-text select-text"
+                                            className="px-3 py-2 text-center cursor-text select-text break-all"
                                             onClick={(e) => e.stopPropagation()}
                                         >
                                             {prof.email}
                                         </td>
-                                        <td className="px-4 py-3 text-center">
+                                        <td className="px-3 py-2 text-center">
                                             <span
                                                 className={`px-2 py-1 rounded-md text-xs font-medium ${getEspecialidadeBadgeColor(prof.especialidade)}`}
                                             >
                                                 {prof.especialidade}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-3 text-center">{prof.qtdAtendimentos}</td>
-                                        <td className="px-4 py-3 text-center">{prof.registroProfissional}</td>
-                                        <td className="px-4 py-3 text-center">
-                                            <div className="flex justify-center gap-2">
+                                        <td className="px-3 py-2 text-center">{prof.qtdAtendimentos}</td>
+                                        <td className="px-3 py-2 text-center break-words">{prof.registroProfissional || "-"}</td>
+                                        <td className="px-3 py-2 text-center">
+                                            <div className="flex justify-center gap-1">
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"

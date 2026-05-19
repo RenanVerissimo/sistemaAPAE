@@ -103,9 +103,15 @@ export default function Laudos({ onBack, setSnackbar }: LaudosProps) {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  const formatarDataLaudo = (data: string) => {
+  const formatarDataPtBr = (data: string) => {
     if (!data) return "-";
-    const date = new Date(data);
+
+    const [ano, mes, dia] = data.split("T")[0].split("-").map(Number);
+    const date =
+      ano && mes && dia ? new Date(ano, mes - 1, dia) : new Date(data);
+
+    if (Number.isNaN(date.getTime())) return data;
+
     return date.toLocaleDateString("pt-BR", {
       day: "2-digit",
       month: "2-digit",
@@ -175,7 +181,7 @@ export default function Laudos({ onBack, setSnackbar }: LaudosProps) {
                       pacientesPaginados.map((pac) => (
                         <tr key={pac.id} className="border-b hover:bg-gray-50">
                           <td className="px-4 py-3">{pac.nome}</td>
-                          <td className="px-4 py-3 text-center">{pac.dataNasc}</td>
+                          <td className="px-4 py-3 text-center">{formatarDataPtBr(pac.dataNasc)}</td>
                           <td className="px-4 py-3 text-center">{pac.prontuario}</td>
                           <td className="px-4 py-3 text-center">{pac.cpf || "-"}</td>
                           <td className="px-4 py-3 text-center">{pac.cartaoSUS || "-"}</td>
@@ -262,7 +268,7 @@ export default function Laudos({ onBack, setSnackbar }: LaudosProps) {
                             {laudo.nomeArquivo}
                           </p>
                           <p className="text-xs text-gray-500">
-                            {formatarDataLaudo(laudo.createdAt)} - {formatarTamanhoArquivo(laudo.tamanho)}
+                            {formatarDataPtBr(laudo.createdAt)} - {formatarTamanhoArquivo(laudo.tamanho)}
                             {laudo.observacao ? ` - ${laudo.observacao}` : ""}
                           </p>
                         </div>
