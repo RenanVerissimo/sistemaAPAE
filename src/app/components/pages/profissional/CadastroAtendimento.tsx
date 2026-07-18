@@ -91,9 +91,19 @@ export function CadastroAtendimento({ user, setSnackbar }: CadastroAtendimentoPr
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!selectedPacienteId) return;
+
+    if (!selectedPacienteId || isNaN(selectedPacienteId)) {
+      setSnackbar({
+        open: true,
+        message: "ID do paciente inválido.",
+        severity: "error",
+      });
+      console.error("user.id inválido:", user.id);
+      return;
+    }
 
     const profissionalId = Number(user.id);
+
     if (!profissionalId || isNaN(profissionalId)) {
       setSnackbar({
         open: true,

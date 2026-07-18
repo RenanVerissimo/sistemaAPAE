@@ -9,7 +9,7 @@
     "build": "vite build",
     "electron": "electron .",
     "dist": "electron-builder",
-    "start": "node server.js"
+    "start": "vite"
   },
   "build": {
     "appId": "com.sistema.apae",

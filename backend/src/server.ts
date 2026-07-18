@@ -53,7 +53,19 @@ async function garantirTabelaLaudos() {
 
 app.get("/pacientes", async (req: Request, res: Response) => {
   try {
-    const [rows] = await db.query("SELECT * FROM pacientes");
+    const [rows] = await db.query(`
+      SELECT
+        p.*,
+        COALESCE(atendimentos_mes.qtdConsultasMesAtual, 0) AS qtdConsultasMesAtual
+      FROM pacientes p
+      LEFT JOIN (
+        SELECT paciente_id, COUNT(*) AS qtdConsultasMesAtual
+        FROM atendimentos
+        WHERE dataConsulta >= DATE_FORMAT(CURDATE(), '%Y-%m-01')
+          AND dataConsulta < DATE_ADD(DATE_FORMAT(CURDATE(), '%Y-%m-01'), INTERVAL 1 MONTH)
+        GROUP BY paciente_id
+      ) atendimentos_mes ON atendimentos_mes.paciente_id = p.id
+    `);
     res.json(rows);
   } catch (error) {
     console.error("Erro ao buscar pacientes:", error);
@@ -311,6 +323,8 @@ app.get("/atendimentos", async (req: Request, res: Response) => {
 });
 
 app.post("/atendimentos", async (req: Request, res: Response) => {
+  const connection = await db.getConnection();
+
   try {
     const { paciente_id, profissional_id, dataConsulta, descricao } = req.body;
 
@@ -319,16 +333,52 @@ app.post("/atendimentos", async (req: Request, res: Response) => {
       return;
     }
 
-    await db.query(
+    await connection.beginTransaction();
+
+    const [pacienteRows]: any = await connection.query(
+      "SELECT id FROM pacientes WHERE id = ?",
+      [paciente_id]
+    );
+
+    const [profissionalRows]: any = await connection.query(
+      "SELECT id FROM profissionais WHERE id = ?",
+      [profissional_id]
+    );
+
+    if (pacienteRows.length === 0 || profissionalRows.length === 0) {
+      await connection.rollback();
+      res.status(404).json({ message: "Paciente ou profissional não encontrado" });
+      return;
+    }
+
+    await connection.query(
       `INSERT INTO atendimentos (paciente_id, profissional_id, dataConsulta, descricao)
        VALUES (?, ?, ?, ?)`,
       [paciente_id, profissional_id, dataConsulta, descricao ?? null]
     );
 
+    await connection.query(
+      `UPDATE pacientes
+          SET qtdConsultasRealizadas = COALESCE(qtdConsultasRealizadas, 0) + 1
+        WHERE id = ?`,
+      [paciente_id]
+    );
+
+    await connection.query(
+      `UPDATE profissionais
+          SET qtdAtendimentos = COALESCE(qtdAtendimentos, 0) + 1
+        WHERE id = ?`,
+      [profissional_id]
+    );
+
+    await connection.commit();
     res.status(201).json({ message: "Atendimento registrado com sucesso" });
   } catch (error) {
+    await connection.rollback();
     console.error("Erro ao registrar atendimento:", error);
     res.status(500).json({ message: "Erro interno do servidor" });
+  } finally {
+    connection.release();
   }
 });
 

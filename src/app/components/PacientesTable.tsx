@@ -432,7 +432,8 @@ export function PacientesTable() {
                   <th className="px-4 py-1 text-center font-semibold w-[10%]">Prontuário</th>
                   <th className="px-4 py-1 text-center font-semibold w-[10%]">CPF</th>
                   <th className="px-4 py-1 text-center font-semibold w-[12%]">Cartão SUS</th>
-                  <th className="px-4 py-1 text-center font-semibold w-[22%]">Descrição</th>
+                  <th className="px-4 py-1 text-center font-semibold w-[18%]">Descrição</th>
+                  <th className="px-4 py-1 text-center font-semibold w-[8%]">Consultas mês</th>
                   <th className="px-4 py-1 text-center font-semibold w-[8%]">Status</th>
                   <th className="px-4 py-1 text-center font-semibold w-[10%]">Ações</th>
                 </tr>
@@ -472,6 +473,9 @@ export function PacientesTable() {
                         limitarTexto(pac.descricao)
                       )}
                     </td>
+                    <td className="px-3 py-2 text-center font-semibold">
+                      {pac.qtdConsultasMesAtual ?? 0}
+                    </td>
                     <td className="px-3 py-2 text-center">
                       <span
                         className={`px-2 py-1 rounded-md text-xs font-medium ${getStatusBadgeColor(pac.status)}`}
@@ -504,7 +508,7 @@ export function PacientesTable() {
                 {/* Linhas vazias para manter altura fixa da tabela */}
                 {Array.from({ length: pacientesPorPagina - pacientesPaginaAtual.length }).map((_, i) => (
                   <tr key={`empty-${i}`} className="border-b h-[56px]">
-                    <td className="px-3 py-2" colSpan={8}>&nbsp;</td>
+                    <td className="px-3 py-2" colSpan={9}>&nbsp;</td>
                   </tr>
                 ))}
               </tbody>

@@ -45,6 +45,7 @@ export interface Paciente {
   laudoFile?: File | null;
   status?: "Ativo" | "Inativo";
   qtdConsultasRealizadas: number;
+  qtdConsultasMesAtual?: number;
 }
 
 export interface Relatorio {
