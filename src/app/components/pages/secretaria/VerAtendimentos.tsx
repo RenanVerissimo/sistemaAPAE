@@ -191,7 +191,7 @@ export function VerAtendimentos() {
             navigate("/SecretariaDashboard/PacienteCard/VerAtendimentos/AtendimentoEspecifico")
           }
         >
-          Atendimentos Específicos
+          Atendimentos por Profissional
         </Button>
       </div>
 

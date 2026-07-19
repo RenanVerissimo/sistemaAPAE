@@ -14,7 +14,7 @@ export function AtendimentoEspecifico() {
                     <ChevronLeft className="w-5 h-5" />
                 </Button>
 
-                <h2 className="text-lg font-semibold">Atendimentos Específicos - PROFISSIONAL</h2>
+                <h2 className="text-lg font-semibold">Atendimentos por Profissional</h2>
             </div>
             <PacientesTableAtendimentoEspecifico />
         </div>
