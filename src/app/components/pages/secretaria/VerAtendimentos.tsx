@@ -180,7 +180,19 @@ export function VerAtendimentos() {
         <Button variant="ghost" size="sm" onClick={() => navigate(-1)}>
           <ChevronLeft className="w-5 h-5" />
         </Button>
+
         <h2 className="text-lg font-semibold">Histórico de Atendimentos</h2>
+
+        <Button
+          variant="ghost"
+          size="sm"
+          className="ml-auto bg-green-600 hover:bg-green-700 text-white"
+          onClick={() =>
+            navigate("/SecretariaDashboard/PacienteCard/VerAtendimentos/AtendimentoEspecifico")
+          }
+        >
+          Atendimentos Específicos
+        </Button>
       </div>
 
       <Card className="bg-blue-50 border-blue-200">
