@@ -10,20 +10,6 @@ import { Atendimento, Paciente, Profissional } from "./interfaces/interfaces";
 import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 
-function formatarDataNascimento(data?: string) {
-  if (!data) return "-";
-
-  const [ano, mes, dia] = data.split("T")[0].split("-");
-  if (!ano || !mes || !dia) return data;
-
-  return `${dia}/${mes}/${ano}`;
-}
-
-function limitarTexto(texto?: string, limite = 45) {
-  if (!texto) return "-";
-  return texto.length > limite ? `${texto.slice(0, limite)}...` : texto;
-}
-
 function obterEspecialidade(profissional: Profissional) {
   if (profissional.especialidade === "outro") {
     return profissional.outraEspecialidade?.trim() || "Outro";
@@ -127,12 +113,37 @@ export function PacientesTableAtendimentoEspecifico() {
     return contagem;
   }, [atendimentos]);
 
+  const atendimentosMensaisPorPaciente = useMemo(() => {
+    const contagem = new Map<number, number>();
+    const hoje = new Date();
+    const anoMesAtual = `${hoje.getFullYear()}-${String(
+      hoje.getMonth() + 1
+    ).padStart(2, "0")}`;
+
+    atendimentos.forEach((atendimento) => {
+      if (!atendimento.paciente_id || !atendimento.dataConsulta) return;
+
+      const anoMesAtendimento = String(atendimento.dataConsulta)
+        .split("T")[0]
+        .slice(0, 7);
+
+      if (anoMesAtendimento !== anoMesAtual) return;
+
+      contagem.set(
+        Number(atendimento.paciente_id),
+        (contagem.get(Number(atendimento.paciente_id)) || 0) + 1
+      );
+    });
+
+    return contagem;
+  }, [atendimentos]);
+
   const pacientesFiltrados = pacientes.filter((paciente) => {
     const matchBusca = filtroAplicado.trim()
       ? paciente.nome.toLowerCase().includes(filtroAplicado.toLowerCase()) ||
-        paciente.prontuario.toLowerCase().includes(filtroAplicado.toLowerCase()) ||
-        (paciente.cpf || "").includes(filtroAplicado) ||
-        (paciente.cartaoSUS || "").includes(filtroAplicado)
+      paciente.prontuario.toLowerCase().includes(filtroAplicado.toLowerCase()) ||
+      (paciente.cpf || "").includes(filtroAplicado) ||
+      (paciente.cartaoSUS || "").includes(filtroAplicado)
       : true;
 
     const matchStatus =
@@ -228,15 +239,14 @@ export function PacientesTableAtendimentoEspecifico() {
                 setFiltroStatus(status);
                 setPaginaAtual(1);
               }}
-              className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors ${
-                filtroStatus === status
-                  ? status === "Ativo"
-                    ? "bg-green-100 text-green-800"
-                    : status === "Inativo"
-                      ? "bg-red-100 text-red-800"
-                      : "bg-gray-800 text-white"
-                  : "text-gray-500 hover:bg-gray-100"
-              }`}
+              className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors ${filtroStatus === status
+                ? status === "Ativo"
+                  ? "bg-green-100 text-green-800"
+                  : status === "Inativo"
+                    ? "bg-red-100 text-red-800"
+                    : "bg-gray-800 text-white"
+                : "text-gray-500 hover:bg-gray-100"
+                }`}
             >
               {status}
             </button>
@@ -247,162 +257,168 @@ export function PacientesTableAtendimentoEspecifico() {
       <Card className="rounded-xl overflow-hidden shadow-md border border-gray-200">
         <div className="w-full overflow-x-auto">
           <table className="w-full min-w-[900px] table-fixed text-sm">
-          <thead className="bg-gray-300 border-b">
-            <tr>
-              <th className="w-[220px] px-2 py-2 text-center font-semibold">
-                Nome
-              </th>
-              <th className="w-[116px] px-2 py-2 text-center font-semibold">
-                Data Nascimento
-              </th>
-              <th className="w-[128px] px-2 py-2 text-center font-semibold">
-                CPF
-              </th>
-              <th className="w-[160px] px-2 py-2 text-center font-semibold">
-                Descrição
-              </th>
-              {especialidades.map((especialidade) => (
-                <th
-                  key={especialidade.chave}
-                  className="w-[88px] px-1 py-2 text-center font-semibold text-xs whitespace-normal break-words"
-                >
-                  <span
-                    className={`inline-flex max-w-full rounded-md px-2 py-1 text-xs font-semibold leading-tight ${getEspecialidadeBadgeColor(
-                      especialidade.nome
-                    )}`}
-                  >
-                    {especialidade.nome}
-                  </span>
-                </th>
-              ))}
-            </tr>
-          </thead>
-
-          <tbody>
-            {pacientesPaginaAtual.map((paciente) => (
-              <tr
-                key={paciente.id}
-                className="h-[52px] border-b hover:bg-gray-100"
-              >
-                <td className="h-[52px] px-2 py-2 text-center align-middle">
-                  <span className="block whitespace-normal break-words leading-tight" title={paciente.nome}>
-                    {paciente.nome}
-                  </span>
-                </td>
-                <td className="h-[52px] px-2 py-2 text-center align-middle whitespace-nowrap">
-                  {formatarDataNascimento(paciente.dataNasc)}
-                </td>
-                <td className="h-[52px] px-1 py-2 text-center align-middle text-xs whitespace-nowrap">
-                  <span title={paciente.cpf || "-"}>
-                    {paciente.cpf || "-"}
-                  </span>
-                </td>
-                <td className="h-[52px] overflow-hidden px-2 py-2 text-center align-middle">
-                  {paciente.descricao && paciente.descricao.length > 45 ? (
-                    <div className="flex max-w-full flex-col items-center justify-center overflow-hidden leading-tight">
-                      <span
-                        className="block max-w-full truncate text-xs"
-                        title={paciente.descricao}
-                      >
-                        {limitarTexto(paciente.descricao)}
-                      </span>
-                      <button
-                        className="text-blue-600 text-xs hover:underline"
-                        onClick={() =>
-                          setDescricaoSelecionada(paciente.descricao || "")
-                        }
-                      >
-                        Ver mais
-                      </button>
-                    </div>
-                  ) : (
-                    <span className="block max-w-full truncate text-xs">
-                      {limitarTexto(paciente.descricao)}
-                    </span>
-                  )}
-                </td>
-                {especialidades.map((especialidade) => {
-                  const chave = `${paciente.id}-${especialidade.chave}`;
-                  const total =
-                    atendimentosPorPacienteEspecialidade.get(chave) || 0;
-
-                  return (
-                    <td
-                      key={especialidade.chave}
-                      className="h-[52px] px-1 py-2 text-center align-middle font-semibold"
-                    >
-                      {total}
-                    </td>
-                  );
-                })}
-              </tr>
-            ))}
-
-            {pacientesFiltrados.length === 0 && (
+            <thead className="bg-gray-300 border-b">
               <tr>
-                <td
-                  className="px-3 py-8 text-center text-gray-500"
-                  colSpan={4 + especialidades.length}
-                >
-                  Nenhum paciente encontrado.
-                </td>
-              </tr>
-            )}
+                <th className="w-[220px] px-2 py-2 text-center font-semibold">
+                  Nome
+                </th>
+                <th className="w-[116px] px-2 py-2 text-center font-semibold">
+                  Prontuário
+                </th>
 
-            {Array.from({
-              length:
-                pacientesFiltrados.length === 0
-                  ? 0
-                  : pacientesPorPagina - pacientesPaginaAtual.length,
-            }).map((_, index) => (
-              <tr key={`empty-${index}`} className="h-[52px] border-b">
-                <td colSpan={4 + especialidades.length}>&nbsp;</td>
+                {especialidades.map((especialidade) => (
+                  <th
+                    key={especialidade.chave}
+                    className="w-[88px] px-1 py-2 text-center font-semibold text-xs whitespace-normal break-words"
+                  >
+                    <span
+                      className={`inline-flex max-w-full rounded-md px-1 py-1 text-xs font-semibold leading-tight ${getEspecialidadeBadgeColor(
+                        especialidade.nome
+                      )}`}
+                    >
+                      {especialidade.nome}
+                    </span>
+                  </th>
+                ))}
+                <th className="w-[92px] border-l border-r border-amber-300 bg-amber-100 px-1 py-2 text-center text-xs font-semibold text-amber-900">
+                  Total Consultas do mês
+                </th>
               </tr>
-            ))}
-          </tbody>
+            </thead>
+
+            <tbody>
+              {pacientesPaginaAtual.map((paciente) => (
+                <tr
+                  key={paciente.id}
+                  className="group h-[52px] border-b hover:bg-gray-100"
+                >
+                  <td className="h-[52px] px-2 py-2 text-center align-middle">
+                    <span className="block whitespace-normal break-words leading-tight" title={paciente.nome}>
+                      {paciente.nome}
+                    </span>
+                  </td>
+                  <td className="h-[52px] px-2 py-2 text-center align-middle whitespace-nowrap">
+                    {paciente.prontuario || "-"}
+                  </td>
+
+                  {especialidades.map((especialidade) => {
+                    const chave = `${paciente.id}-${especialidade.chave}`;
+                    const total =
+                      atendimentosPorPacienteEspecialidade.get(chave) || 0;
+
+                    return (
+                      <td
+                        key={especialidade.chave}
+                        className="h-[52px] px-1 py-2 text-center align-middle font-semibold"
+                      >
+                        {total}
+                      </td>
+                    );
+                  })}
+
+                  <td className="h-[52px] border-l border-r border-amber-200 bg-amber-50 px-1 py-2 text-center align-middle font-bold text-amber-900 group-hover:bg-gray-100">
+                    {atendimentosMensaisPorPaciente.get(paciente.id) || 0}
+                  </td>
+                </tr>
+              ))}
+
+              {pacientesFiltrados.length === 0 && (
+                <tr>
+                  <td
+                    className="px-3 py-8 text-center text-gray-500"
+                    colSpan={5 + especialidades.length}
+                  >
+                    Nenhum paciente encontrado.
+                  </td>
+                </tr>
+              )}
+
+              {Array.from({
+                length:
+                  pacientesFiltrados.length === 0
+                    ? 0
+                    : pacientesPorPagina - pacientesPaginaAtual.length,
+              }).map((_, index) => (
+                <tr key={`empty-${index}`} className="h-[52px] border-b">
+                  <td colSpan={5 + especialidades.length}>&nbsp;</td>
+                </tr>
+              ))}
+            </tbody>
           </table>
         </div>
 
-        <div className="flex flex-col gap-3 border-t bg-white px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
-        <p className="text-sm text-gray-500">
+      </Card>
+
+      <div className="flex items-center justify-between mt-4 text-sm text-gray-600">
+        <span>
           Mostrando {inicio}-{fim} de {pacientesFiltrados.length} pacientes
           {filtroAplicado && ` (filtrado de ${pacientes.length})`}
-        </p>
+        </span>
 
-        <div className="flex items-center justify-center gap-1">
-          <Button
-            variant="outline"
-            size="sm"
+        <div className="flex items-center gap-1">
+          <button
+            className="px-2 py-1 rounded hover:bg-gray-200 disabled:opacity-40"
             disabled={paginaAtual === 1}
-            onClick={() => setPaginaAtual((pagina) => Math.max(1, pagina - 1))}
+            onClick={() => setPaginaAtual(1)}
+          >
+            {"<<"}
+          </button>
+
+          <button
+            className="p-1 rounded hover:bg-gray-200 disabled:opacity-40"
+            disabled={paginaAtual === 1}
+            onClick={() => setPaginaAtual((prev) => prev - 1)}
           >
             <NavigateBeforeIcon fontSize="small" />
-          </Button>
+          </button>
 
-          {gerarPaginas().map((pagina) => (
-            <Button
-              key={pagina}
-              variant={paginaAtual === pagina ? "default" : "outline"}
-              size="sm"
-              onClick={() => setPaginaAtual(pagina)}
+          {paginaAtual > 2 && (
+            <>
+              <button
+                className="px-2 py-1 rounded hover:bg-gray-200"
+                onClick={() => setPaginaAtual(1)}
+              >
+                1
+              </button>
+              <span className="px-1">...</span>
+            </>
+          )}
+
+          {gerarPaginas().map((numero) => (
+            <button
+              key={numero}
+              className={`px-2 py-1 rounded ${
+                numero === paginaAtual
+                  ? "bg-gray-800 text-white"
+                  : "hover:bg-gray-200"
+              }`}
+              onClick={() => setPaginaAtual(numero)}
             >
-              {pagina}
-            </Button>
+              {numero}
+            </button>
           ))}
 
-          <Button
-            variant="outline"
-            size="sm"
+          {paginaAtual < totalPaginas - 1 && (
+            <>
+              <span className="px-1">...</span>
+              <button
+                className="px-2 py-1 rounded hover:bg-gray-200"
+                onClick={() => setPaginaAtual(totalPaginas)}
+              >
+                {totalPaginas}
+              </button>
+            </>
+          )}
+
+          <button
+            className="p-1 rounded hover:bg-gray-200 disabled:opacity-40"
             disabled={paginaAtual === totalPaginas || totalPaginas === 0}
-            onClick={() =>
-              setPaginaAtual((pagina) => Math.min(totalPaginas, pagina + 1))
-            }
+            onClick={() => setPaginaAtual((prev) => prev + 1)}
           >
             <NavigateNextIcon fontSize="small" />
-          </Button>
+          </button>
         </div>
-        </div>
-      </Card>
+      </div>
 
       {descricaoSelecionada && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">

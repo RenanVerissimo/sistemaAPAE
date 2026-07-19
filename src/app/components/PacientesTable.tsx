@@ -433,8 +433,8 @@ export function PacientesTable() {
                   <th className="px-4 py-1 text-center font-semibold w-[10%]">CPF</th>
                   <th className="px-4 py-1 text-center font-semibold w-[12%]">Cartão SUS</th>
                   <th className="px-4 py-1 text-center font-semibold w-[14%]">Descrição</th>
-                  <th className="px-4 py-1 text-center font-semibold w-[8%]">Consultas total</th>
-                  <th className="px-4 py-1 text-center font-semibold w-[8%]">Consultas mês</th>
+{/*                   <th className="px-4 py-1 text-center font-semibold w-[8%]">Consultas total</th>
+                  <th className="px-4 py-1 text-center font-semibold w-[8%]">Consultas mês</th> */}
                   <th className="px-4 py-1 text-center font-semibold w-[8%]">Status</th>
                   <th className="px-4 py-1 text-center font-semibold w-[10%]">Ações</th>
                 </tr>
@@ -474,12 +474,12 @@ export function PacientesTable() {
                         limitarTexto(pac.descricao)
                       )}
                     </td>
-                    <td className="px-3 py-2 text-center font-semibold">
+{/*                     <td className="px-3 py-2 text-center font-semibold">
                       {pac.qtdConsultasRealizadas ?? 0}
                     </td>
                     <td className="px-3 py-2 text-center font-semibold">
                       {pac.qtdConsultasMesAtual ?? 0}
-                    </td>
+                    </td> */}
                     <td className="px-3 py-2 text-center">
                       <span
                         className={`px-2 py-1 rounded-md text-xs font-medium ${getStatusBadgeColor(pac.status)}`}
