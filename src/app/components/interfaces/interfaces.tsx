@@ -32,6 +32,7 @@ export interface Profissional {
   rolee: string;
 
   qtdAtendimentos: number;
+  qtdAtendimentosMesAtual?: number;
 }
 
 export interface Paciente {

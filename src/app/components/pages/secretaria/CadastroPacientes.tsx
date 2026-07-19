@@ -50,7 +50,6 @@ export function CadastroPacientes() {
       dataNasc,
       prontuario,
       status: "Ativo",
-      qtdConsultasRealizadas: 0,
     };
 
     try {

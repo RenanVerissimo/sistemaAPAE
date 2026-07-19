@@ -33,7 +33,6 @@ export const cadastrarPaciente = async (data: {
   cpf?: string;
   descricao?: string;
   status?: "Ativo" | "Inativo";
-  qtdConsultasRealizadas: number;
 }) => {
   try {
     const response = await fetch(`${API_BASE_URL}/pacientes`, {
@@ -112,7 +111,6 @@ export const cadastrarProfissional = async (data: {
   outraEspecialidade?: string;
   registroProfissional?: string;
   rolee: string;
-  qtdAtendimentos?: number;
 }) => {
   try {
     const response = await fetch(`${API_BASE_URL}/profissionais`, {

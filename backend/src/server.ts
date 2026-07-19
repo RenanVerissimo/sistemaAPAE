@@ -55,9 +55,22 @@ app.get("/pacientes", async (req: Request, res: Response) => {
   try {
     const [rows] = await db.query(`
       SELECT
-        p.*,
+        p.id,
+        p.nome,
+        p.cpf,
+        p.prontuario,
+        p.dataNasc,
+        p.cartaoSUS,
+        p.status,
+        p.descricao,
+        COALESCE(atendimentos_total.qtdConsultasRealizadas, 0) AS qtdConsultasRealizadas,
         COALESCE(atendimentos_mes.qtdConsultasMesAtual, 0) AS qtdConsultasMesAtual
       FROM pacientes p
+      LEFT JOIN (
+        SELECT paciente_id, COUNT(*) AS qtdConsultasRealizadas
+        FROM atendimentos
+        GROUP BY paciente_id
+      ) atendimentos_total ON atendimentos_total.paciente_id = p.id
       LEFT JOIN (
         SELECT paciente_id, COUNT(*) AS qtdConsultasMesAtual
         FROM atendimentos
@@ -87,16 +100,16 @@ app.post("/pacientes", async (req: Request, res: Response) => {
   try {
     const {
       nome, cpf, prontuario, dataNasc, cartaoSUS,
-      status, descricao, qtdConsultasRealizadas,
+      status, descricao,
     } = req.body;
 
     const [result]: any = await db.query(
       `INSERT INTO pacientes
-        (nome, cpf, prontuario, dataNasc, cartaoSUS, status, descricao, qtdConsultasRealizadas)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+        (nome, cpf, prontuario, dataNasc, cartaoSUS, status, descricao)
+       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [
         nome, cpf, prontuario, dataNasc, cartaoSUS,
-        status ?? "Ativo", descricao ?? null, qtdConsultasRealizadas ?? 0,
+        status ?? "Ativo", descricao ?? null,
       ]
     );
     res.status(201).json({
@@ -114,17 +127,17 @@ app.put("/pacientes/:id", async (req: Request, res: Response) => {
     const { id } = req.params;
     const {
       nome, cpf, prontuario, dataNasc, cartaoSUS,
-      status, descricao, qtdConsultasRealizadas,
+      status, descricao,
     } = req.body;
 
     await db.query(
       `UPDATE pacientes
          SET nome = ?, cpf = ?, prontuario = ?, dataNasc = ?, cartaoSUS = ?,
-             status = ?, descricao = ?, qtdConsultasRealizadas = ?
+             status = ?, descricao = ?
        WHERE id = ?`,
       [
         nome, cpf, prontuario, dataNasc, cartaoSUS,
-        status ?? "Ativo", descricao ?? null, qtdConsultasRealizadas ?? 0, id,
+        status ?? "Ativo", descricao ?? null, id,
       ]
     );
     res.json({ message: "Paciente atualizado com sucesso" });
@@ -149,9 +162,34 @@ app.delete("/pacientes/:id", async (req: Request, res: Response) => {
 
 app.get("/profissionais", async (req: Request, res: Response) => {
   try {
-    const [rows] = await db.query(
-      "SELECT * FROM profissionais WHERE rolee <> 'SECRETARIA'"
-    );
+    const [rows] = await db.query(`
+      SELECT
+        p.id,
+        p.nome,
+        p.email,
+        p.dataNasc,
+        p.senha,
+        p.especialidade,
+        p.outraEspecialidade,
+        p.registroProfissional,
+        p.rolee,
+        COALESCE(atendimentos_total.qtdAtendimentos, 0) AS qtdAtendimentos,
+        COALESCE(atendimentos_mes.qtdAtendimentosMesAtual, 0) AS qtdAtendimentosMesAtual
+      FROM profissionais p
+      LEFT JOIN (
+        SELECT profissional_id, COUNT(*) AS qtdAtendimentos
+        FROM atendimentos
+        GROUP BY profissional_id
+      ) atendimentos_total ON atendimentos_total.profissional_id = p.id
+      LEFT JOIN (
+        SELECT profissional_id, COUNT(*) AS qtdAtendimentosMesAtual
+        FROM atendimentos
+        WHERE dataConsulta >= DATE_FORMAT(CURDATE(), '%Y-%m-01')
+          AND dataConsulta < DATE_ADD(DATE_FORMAT(CURDATE(), '%Y-%m-01'), INTERVAL 1 MONTH)
+        GROUP BY profissional_id
+      ) atendimentos_mes ON atendimentos_mes.profissional_id = p.id
+      WHERE p.rolee <> 'SECRETARIA'
+    `);
     res.json(rows);
   } catch (error) {
     console.error("Erro ao buscar profissionais:", error);
@@ -175,7 +213,7 @@ app.post("/profissionais", async (req: Request, res: Response) => {
   try {
     const {
       nome, email, dataNasc, senha, especialidade,
-      outraEspecialidade, registroProfissional, rolee, qtdAtendimentos,
+      outraEspecialidade, registroProfissional, rolee,
     } = req.body;
 
     if (!nome || !email || !senha || !especialidade) {
@@ -192,17 +230,15 @@ app.post("/profissionais", async (req: Request, res: Response) => {
       return;
     }
 
-    const qtd = Number(qtdAtendimentos) || 0;
-
     const [result]: any = await db.query(
       `INSERT INTO profissionais
         (nome, email, dataNasc, senha, especialidade, outraEspecialidade,
-         registroProfissional, rolee, qtdAtendimentos)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         registroProfissional, rolee)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         nome, email, dataNasc, senha, especialidade,
         outraEspecialidade || null, registroProfissional || null,
-        rolee || "PROFISSIONAL", qtd,
+        rolee || "PROFISSIONAL",
       ]
     );
 
@@ -221,18 +257,17 @@ app.put("/profissionais/:id", async (req: Request, res: Response) => {
     const { id } = req.params;
     const {
       nome, email, dataNasc, especialidade,
-      outraEspecialidade, registroProfissional, qtdAtendimentos,
+      outraEspecialidade, registroProfissional,
     } = req.body;
 
     await db.query(
       `UPDATE profissionais
          SET nome = ?, email = ?, dataNasc = ?, especialidade = ?,
-             outraEspecialidade = ?, registroProfissional = ?, qtdAtendimentos = ?
+             outraEspecialidade = ?, registroProfissional = ?
        WHERE id = ?`,
       [
         nome, email, dataNasc, especialidade,
-        outraEspecialidade || null, registroProfissional || null,
-        Number(qtdAtendimentos) || 0, id,
+        outraEspecialidade || null, registroProfissional || null, id,
       ]
     );
     res.json({ message: "Profissional atualizado com sucesso" });
@@ -355,20 +390,6 @@ app.post("/atendimentos", async (req: Request, res: Response) => {
       `INSERT INTO atendimentos (paciente_id, profissional_id, dataConsulta, descricao)
        VALUES (?, ?, ?, ?)`,
       [paciente_id, profissional_id, dataConsulta, descricao ?? null]
-    );
-
-    await connection.query(
-      `UPDATE pacientes
-          SET qtdConsultasRealizadas = COALESCE(qtdConsultasRealizadas, 0) + 1
-        WHERE id = ?`,
-      [paciente_id]
-    );
-
-    await connection.query(
-      `UPDATE profissionais
-          SET qtdAtendimentos = COALESCE(qtdAtendimentos, 0) + 1
-        WHERE id = ?`,
-      [profissional_id]
     );
 
     await connection.commit();

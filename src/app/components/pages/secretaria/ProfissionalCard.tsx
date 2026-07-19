@@ -313,7 +313,8 @@ export default function ProfissionalCard() {
                                     <th className="w-[20%] px-3 py-2 text-center font-semibold">Nome</th>
                                     <th className="w-[24%] px-3 py-2 text-center font-semibold">Email</th>
                                     <th className="w-[16%] px-3 py-2 text-center font-semibold">Especialidade</th>
-                                    <th className="px-4 py-3 text-center font-semibold">Atendimentos (mês)</th>
+                                    <th className="px-4 py-3 text-center font-semibold">Atendimentos total</th>
+                                    <th className="px-4 py-3 text-center font-semibold">Atendimentos mês</th>
                                     <th className="px-4 py-3 text-center font-semibold">Número de Registro Profissional</th>
                                     <th className="px-4 py-3 text-center font-semibold">Ações</th>
                                 </tr>
@@ -345,7 +346,8 @@ export default function ProfissionalCard() {
                                                 {prof.especialidade}
                                             </span>
                                         </td>
-                                        <td className="px-3 py-2 text-center">{prof.qtdAtendimentos}</td>
+                                        <td className="px-3 py-2 text-center">{prof.qtdAtendimentos ?? 0}</td>
+                                        <td className="px-3 py-2 text-center">{prof.qtdAtendimentosMesAtual ?? 0}</td>
                                         <td className="px-3 py-2 text-center break-words">{prof.registroProfissional || "-"}</td>
                                         <td className="px-3 py-2 text-center">
                                             <div className="flex justify-center gap-1">
@@ -482,19 +484,6 @@ export default function ProfissionalCard() {
                                             />
                                         </div>
                                     )}
-                                </div>
-                                <div>
-                                    <label className="text-sm font-medium">Qtd Atendimentos</label>
-                                    <input
-                                        className="w-full border rounded px-3 py-2 mt-1"
-                                        value={profissionalSelecionado.qtdAtendimentos}
-                                        onChange={(e) =>
-                                            setProfissionalSelecionado({
-                                                ...profissionalSelecionado,
-                                                qtdAtendimentos: Number(e.target.value),
-                                            })
-                                        }
-                                    />
                                 </div>
                                 <div>
                                     <label className="text-sm font-medium">Numero de Registro Profissional</label>
