@@ -17,7 +17,7 @@ export function TableActions({
     onLaudo
 }: TableActionsProps) {
     return (
-        <div className="flex items-center justify-center gap-0 whitespace-nowrap">
+        <div className="flex items-center justify-center gap-0.5 whitespace-nowrap">
 
             {onLaudo && (
                 <Button

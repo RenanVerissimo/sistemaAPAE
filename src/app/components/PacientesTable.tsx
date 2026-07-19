@@ -229,8 +229,8 @@ export function PacientesTable() {
 
   const limitarTexto = (texto?: string) => {
     if (!texto) return "-";
-    if (texto.length <= 45) return texto;
-    return texto.substring(0, 45) + "...";
+    if (texto.length <= 25) return texto;
+    return texto.substring(0, 25) + "...";
   };
 
   const formatarTamanhoArquivo = (bytes: number) => {
@@ -462,7 +462,7 @@ export function PacientesTable() {
                     }
                   >
                     <td className="h-[56px] px-2 py-2 text-center align-middle">
-                      <span className="block truncate" title={pac.nome}>
+                      <span className="block whitespace-normal break-words leading-tight" title={pac.nome}>
                         {pac.nome}
                       </span>
                     </td>
@@ -483,9 +483,9 @@ export function PacientesTable() {
                       </span>
                     </td>
                     <td className="h-[56px] px-2 py-2 text-center align-middle">
-                      {pac.descricao && pac.descricao.length > 45 ? (
+                      {pac.descricao && pac.descricao.length > 25 ? (
                         <div className="mx-auto flex max-w-full flex-col items-center leading-tight">
-                          <span className="block max-w-full truncate" title={pac.descricao}>
+                          <span className="block max-w-full truncate text-xs" title={pac.descricao}>
                             {limitarTexto(pac.descricao)}
                           </span>
                           <button
@@ -499,7 +499,7 @@ export function PacientesTable() {
                           </button>
                         </div>
                       ) : (
-                        <span className="block truncate" title={pac.descricao || "-"}>
+                        <span className="block truncate text-xs" title={pac.descricao || "-"}>
                           {limitarTexto(pac.descricao)}
                         </span>
                       )}
