@@ -423,19 +423,29 @@ export function PacientesTable() {
           </div>
         </div>
         <Card className="rounded-xl overflow-hidden shadow-md border border-gray-200 flex-1">
-          <div className="w-full overflow-x-auto">
-            <table className="w-full text-sm">
+          <div className="w-full overflow-hidden">
+            <table className="w-full table-fixed text-sm">
+              <colgroup>
+                <col className="w-[16%]" />
+                <col className="w-[10%]" />
+                <col className="w-[10%]" />
+                <col className="w-[11%]" />
+                <col className="w-[11%]" />
+                <col className="w-[18%]" />
+                <col className="w-[9%]" />
+                <col className="w-[15%]" />
+              </colgroup>
               <thead className="bg-gray-300 border-b">
                 <tr>
-                  <th className="px-4 py-1 text-center font-semibold w-[18%]">Nome</th>
-                  <th className="px-4 py-1 text-center font-semibold w-[10%]">Data Nascimento</th>
+                  <th className="w-[16%] px-2 py-1 text-center font-semibold">Nome</th>
+                  <th className="w-[10%] px-2 py-1 text-center font-semibold">Data Nascimento</th>
                   <th className="px-4 py-1 text-center font-semibold w-[10%]">Prontuário</th>
-                  <th className="px-4 py-1 text-center font-semibold w-[10%]">CPF</th>
+                  <th className="w-[11%] px-2 py-1 text-center font-semibold">CPF</th>
                   <th className="px-4 py-1 text-center font-semibold w-[12%]">Cartão SUS</th>
                   <th className="px-4 py-1 text-center font-semibold w-[14%]">Descrição</th>
 {/*                   <th className="px-4 py-1 text-center font-semibold w-[8%]">Consultas total</th>
                   <th className="px-4 py-1 text-center font-semibold w-[8%]">Consultas mês</th> */}
-                  <th className="px-4 py-1 text-center font-semibold w-[8%]">Status</th>
+                  <th className="w-[9%] px-2 py-1 text-center font-semibold">Status</th>
                   <th className="px-4 py-1 text-center font-semibold w-[10%]">Ações</th>
                 </tr>
               </thead>
@@ -444,24 +454,42 @@ export function PacientesTable() {
                 {pacientesPaginaAtual.map((pac) => (
                   <tr
                     key={pac.id}
-                    className="border-b hover:bg-gray-200 h-[48px] cursor-pointer"
+                    className="h-[56px] border-b hover:bg-gray-200 cursor-pointer"
                     onClick={() =>
                       navigate("/SecretariaDashboard/PacienteCard/VerAtendimentos", {
                         state: { paciente: { id: pac.id, nome: pac.nome } },
                       })
                     }
                   >
-                    <td className="px-3 py-2 text-center">{pac.nome}</td>
-                    <td className="px-3 py-2 text-center">{formatarDataNascimento(pac.dataNasc)}</td>
-                    <td className="px-3 py-2 text-center">{pac.prontuario}</td>
-                    <td className="px-3 py-2 text-center">{pac.cpf || "-"}</td>
-                    <td className="px-3 py-2 text-center">{pac.cartaoSUS || "-"}</td>
-                    <td className="px-3 py-2 text-center">
+                    <td className="h-[56px] px-2 py-2 text-center align-middle">
+                      <span className="block truncate" title={pac.nome}>
+                        {pac.nome}
+                      </span>
+                    </td>
+                    <td className="h-[56px] px-2 py-2 text-center align-middle whitespace-nowrap">{formatarDataNascimento(pac.dataNasc)}</td>
+                    <td className="h-[56px] px-2 py-2 text-center align-middle">
+                      <span className="block truncate" title={pac.prontuario}>
+                        {pac.prontuario}
+                      </span>
+                    </td>
+                    <td className="h-[56px] px-2 py-2 text-center align-middle">
+                      <span className="block truncate" title={pac.cpf || "-"}>
+                        {pac.cpf || "-"}
+                      </span>
+                    </td>
+                    <td className="h-[56px] px-2 py-2 text-center align-middle">
+                      <span className="block truncate" title={pac.cartaoSUS || "-"}>
+                        {pac.cartaoSUS || "-"}
+                      </span>
+                    </td>
+                    <td className="h-[56px] px-2 py-2 text-center align-middle">
                       {pac.descricao && pac.descricao.length > 45 ? (
-                        <>
-                          {limitarTexto(pac.descricao)}
+                        <div className="mx-auto flex max-w-full flex-col items-center leading-tight">
+                          <span className="block max-w-full truncate" title={pac.descricao}>
+                            {limitarTexto(pac.descricao)}
+                          </span>
                           <button
-                            className="text-blue-600 text-xs ml-2 hover:underline"
+                            className="text-blue-600 text-xs hover:underline"
                             onClick={(e) => {
                               e.stopPropagation();
                               setDescricaoSelecionada(pac.descricao || "");
@@ -469,9 +497,11 @@ export function PacientesTable() {
                           >
                             Ver mais
                           </button>
-                        </>
+                        </div>
                       ) : (
-                        limitarTexto(pac.descricao)
+                        <span className="block truncate" title={pac.descricao || "-"}>
+                          {limitarTexto(pac.descricao)}
+                        </span>
                       )}
                     </td>
 {/*                     <td className="px-3 py-2 text-center font-semibold">
@@ -480,7 +510,7 @@ export function PacientesTable() {
                     <td className="px-3 py-2 text-center font-semibold">
                       {pac.qtdConsultasMesAtual ?? 0}
                     </td> */}
-                    <td className="px-3 py-2 text-center">
+                    <td className="h-[56px] px-1 py-2 text-center align-middle">
                       <span
                         className={`px-2 py-1 rounded-md text-xs font-medium ${getStatusBadgeColor(pac.status)}`}
                       >
@@ -489,7 +519,7 @@ export function PacientesTable() {
 
                     </td>
                     <td
-                      className="px-3 py-2 text-center"
+                      className="h-[56px] px-0 py-2 text-center align-middle"
                       onClick={(e) => e.stopPropagation()}
                     >
                       <TableActions
@@ -512,7 +542,7 @@ export function PacientesTable() {
                 {/* Linhas vazias para manter altura fixa da tabela */}
                 {Array.from({ length: pacientesPorPagina - pacientesPaginaAtual.length }).map((_, i) => (
                   <tr key={`empty-${i}`} className="border-b h-[56px]">
-                    <td className="px-3 py-2" colSpan={10}>&nbsp;</td>
+                    <td className="h-[56px] px-3 py-2" colSpan={8}>&nbsp;</td>
                   </tr>
                 ))}
               </tbody>
