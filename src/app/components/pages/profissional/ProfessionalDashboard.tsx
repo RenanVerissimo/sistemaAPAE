@@ -204,7 +204,7 @@ export function ProfessionalDashboard({
                           <div>
                             <p className="font-semibold">Laudos</p>
                             <p className="text-sm text-gray-500">
-                              Visualize os laudos dos pacientes
+                              Visualize e faça download dos laudos dos pacientes
                             </p>
                           </div>
                         </div>
