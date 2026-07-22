@@ -18,6 +18,7 @@ import { getAtendimentos, getQtdPacientes } from "@/app/services/api";
 
 import Laudos from "./Laudos";
 import { EvolucaoPacientesPage } from "./EvolucaoPacientesPage";
+import ControlePTS from "./ControlePTS";
 
 import { HistoricoAtendimentos } from "./HistoricoAtendimentos";
 import { User } from "../../interfaces/interfaces";
@@ -215,32 +216,56 @@ export function ProfessionalDashboard({
                 </div>
               </div>
 
-              {/* REGISTRO DE EVOLUÇÃO */}
+              {/* projeto terapêutico singular (PTS) */}
               <div>
                 <h2 className="text-lg font-semibold mb-3">
-                  Registro de Evolução
+                  Projeto Terapêutico Singular (PTS)
                 </h2>
-                <Card
-                  onClick={() => navigate("EvolucaoPaciente")}
-                  className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-lg cursor-pointer"
-                >
-                  <CardContent className="pt-6">
-                    <div className="w-full flex items-center justify-center gap-3">
-                      <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
-                        <FileText className="w-7 h-7" />
+                <div className="space-y-4">
+                  <Card
+                    className="hover:bg-gray-50 transition-colors cursor-pointer"
+                    onClick={() => navigate("ControlePTS")}
+                  >
+                    <CardContent className="pt-6">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
+                            <ClipboardList className="w-5 h-5 text-gray-600" />
+                          </div>
+                          <div>
+                            <p className="font-semibold">Controle PTS</p>
+                            <p className="text-sm text-gray-500">
+                              Controle de quem já realizou o PTS
+                            </p>
+                          </div>
+                        </div>
+                        <ChevronRight className="w-5 h-5 text-gray-400" />
                       </div>
-                      <div className="flex-1">
-                        <h3 className="text-xl font-bold">
-                          Registrar Evolução do Paciente
-                        </h3>
-                        <p className="text-sm text-emerald-100">
-                          Acompanhe o progresso e desenvolvimento do paciente
-                        </p>
+                    </CardContent>
+                  </Card>
+
+                  <Card
+                    onClick={() => navigate("EvolucaoPaciente")}
+                    className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-lg cursor-pointer"
+                  >
+                    <CardContent className="pt-6">
+                      <div className="w-full flex items-center justify-center gap-3">
+                        <div className="w-12 h-12 bg-white/20 rounded-full flex items-center justify-center">
+                          <FileText className="w-7 h-7" />
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="text-xl font-bold">
+                            Projeto Terapêutico Singular (PTS)
+                          </h3>
+                          <p className="text-sm text-emerald-100">
+                            Acompanhe o progresso e desenvolvimento do paciente
+                          </p>
+                        </div>
+                        <ChevronRight className="w-6 h-6" />
                       </div>
-                      <ChevronRight className="w-6 h-6" />
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                </div>
               </div>
             </div>
           }
@@ -265,11 +290,21 @@ export function ProfessionalDashboard({
           }
         />
         <Route
+          path="ControlePTS"
+          element={
+            <ControlePTS
+              onBack={() => navigate("/ProfissionalDashboard")}
+              setSnackbar={setSnackbar}
+            />
+          }
+        />
+        <Route
           path="EvolucaoPaciente"
           element={
             <EvolucaoPacientesPage
               user={user}
               onBack={() => navigate("/ProfissionalDashboard")}
+              setSnackbar={setSnackbar}
             />
           }
         />

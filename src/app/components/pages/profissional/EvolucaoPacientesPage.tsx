@@ -1,31 +1,44 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
-import { ArrowLeft, ArrowRight, FileDown, Search as SearchIcon } from 'lucide-react';
+import { ArrowLeft, ArrowRight, FileDown, Save, Search as SearchIcon } from 'lucide-react';
 import { Badge } from "@/app/components/ui/badge";
 import { generateAlunoRelatorioPDF } from "@/utils/generateAlunoRelatorioPDF";
-import { getAllPacientes } from "@/app/services/api";
+import { getAllPacientes, getRegistroEvolucao, salvarRegistroEvolucao } from "@/app/services/api";
 import { Relatorio, User, Paciente } from '../../interfaces/interfaces';
+
+interface SnackbarState {
+  open: boolean;
+  message: string;
+  severity: "success" | "error" | "info" | "warning";
+}
 
 interface EvolucaoPacientesPageProps {
   user: User;
   onBack: () => void;
+  setSnackbar: Dispatch<SetStateAction<SnackbarState>>;
 }
 
-export function EvolucaoPacientesPage({ user, onBack }: EvolucaoPacientesPageProps) {
+type AcaoPendente = "voltar" | "pdf" | null;
+
+export function EvolucaoPacientesPage({ user, onBack, setSnackbar }: EvolucaoPacientesPageProps) {
   const [pacienteSelecionado, setPacienteSelecionado] = useState<Paciente | null>(null);
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
 
   const [searchPaciente, setSearchPaciente] = useState('');
-  const [relatorios, setRelatorios] = useState<Relatorio[]>([]);
+  const [relatorios] = useState<Relatorio[]>([]);
 
   const [historicoClinico, setHistoricoClinico] = useState('');
   const [objetivoDoTratamento, setObjetivoDoTratamento] = useState('');
   const [tecEProcAplicados, setTecEProcAplicados] = useState('');
   const [evolucaoRetrocessoDoPaciente, setEvolucaoRetrocessoDoPaciente] = useState('');
   const [recomendacoesFinais, setRecomendacoesFinais] = useState('');
+  const [carregandoRegistro, setCarregandoRegistro] = useState(false);
+  const [salvandoRegistro, setSalvandoRegistro] = useState(false);
+  const [registroAlterado, setRegistroAlterado] = useState(false);
+  const [acaoPendente, setAcaoPendente] = useState<AcaoPendente>(null);
 
   const ITEMS_PER_PAGE = 10;
   const [currentPage, setCurrentPage] = useState(1);
@@ -45,6 +58,193 @@ export function EvolucaoPacientesPage({ user, onBack }: EvolucaoPacientesPagePro
     };
     carregarPacientes();
   }, []);
+
+  useEffect(() => {
+    const bloquearSaidaComAlteracoes = (event: BeforeUnloadEvent) => {
+      if (!registroAlterado) return;
+
+      event.preventDefault();
+      event.returnValue = "";
+    };
+
+    window.addEventListener("beforeunload", bloquearSaidaComAlteracoes);
+    return () => window.removeEventListener("beforeunload", bloquearSaidaComAlteracoes);
+  }, [registroAlterado]);
+
+  const limparCamposRegistro = () => {
+    setHistoricoClinico('');
+    setObjetivoDoTratamento('');
+    setTecEProcAplicados('');
+    setEvolucaoRetrocessoDoPaciente('');
+    setRecomendacoesFinais('');
+    setRegistroAlterado(false);
+  };
+
+  const marcarCampoAlterado = (atualizarCampo: (valor: string) => void, valor: string) => {
+    atualizarCampo(valor);
+    setRegistroAlterado(true);
+  };
+
+  const abrirRegistroPaciente = async (paciente: Paciente) => {
+    const profissionalId = Number(user.id);
+
+    setPacienteSelecionado(paciente);
+    setPageView("registro");
+    limparCamposRegistro();
+
+    if (!profissionalId) {
+      setSnackbar({
+        open: true,
+        message: "ID do profissional inválido. Faça login novamente.",
+        severity: "error",
+      });
+      return;
+    }
+
+    setCarregandoRegistro(true);
+    try {
+      const registro = await getRegistroEvolucao(paciente.id, profissionalId);
+
+      setHistoricoClinico(registro?.historicoClinico ?? '');
+      setObjetivoDoTratamento(registro?.objetivosTratamento ?? '');
+      setTecEProcAplicados(registro?.tecnicasProcedimentos ?? '');
+      setEvolucaoRetrocessoDoPaciente(registro?.evolucaoPaciente ?? '');
+      setRecomendacoesFinais(registro?.recomendacoesFinais ?? '');
+      setRegistroAlterado(false);
+    } catch (error) {
+      console.error(error);
+      setSnackbar({
+        open: true,
+        message: "Erro ao carregar o registro de evolução.",
+        severity: "error",
+      });
+    } finally {
+      setCarregandoRegistro(false);
+    }
+  };
+
+  const salvarRegistroAtual = async (opcoes?: {
+    mostrarMensagem?: boolean;
+    somenteSeAlterado?: boolean;
+  }) => {
+    const mostrarMensagem = opcoes?.mostrarMensagem ?? true;
+
+    if (opcoes?.somenteSeAlterado && !registroAlterado) {
+      return true;
+    }
+
+    if (!pacienteSelecionado) return false;
+
+    const profissionalId = Number(user.id);
+    if (!profissionalId) {
+      setSnackbar({
+        open: true,
+        message: "ID do profissional inválido. Faça login novamente.",
+        severity: "error",
+      });
+      return false;
+    }
+
+    setSalvandoRegistro(true);
+    try {
+      await salvarRegistroEvolucao(pacienteSelecionado.id, {
+        profissional_id: profissionalId,
+        historicoClinico,
+        objetivosTratamento: objetivoDoTratamento,
+        tecnicasProcedimentos: tecEProcAplicados,
+        evolucaoPaciente: evolucaoRetrocessoDoPaciente,
+        recomendacoesFinais,
+      });
+
+      setRegistroAlterado(false);
+
+      if (mostrarMensagem) {
+        setSnackbar({
+          open: true,
+          message: "Projeto Terapêutico Singular (PTS) salvo com sucesso!",
+          severity: "success",
+        });
+      }
+
+      return true;
+    } catch (error) {
+      console.error(error);
+      setSnackbar({
+        open: true,
+        message: "Erro ao salvar o registro de evolução.",
+        severity: "error",
+      });
+      return false;
+    } finally {
+      setSalvandoRegistro(false);
+    }
+  };
+
+  const gerarPdfAtual = () => {
+    if (!pacienteSelecionado) return;
+
+    generateAlunoRelatorioPDF({
+      aluno: pacienteSelecionado,
+      profissional: user,
+      campos: {
+        historicoClinico,
+        objetivos: objetivoDoTratamento,
+        tecnicas: tecEProcAplicados,
+        evolucao: evolucaoRetrocessoDoPaciente,
+        recomendacoes: recomendacoesFinais,
+      }
+    });
+  };
+
+  const executarAcao = (acao: Exclude<AcaoPendente, null>) => {
+    if (acao === "voltar") {
+      setPageView("lista");
+      return;
+    }
+
+    gerarPdfAtual();
+  };
+
+  const solicitarAcao = (acao: Exclude<AcaoPendente, null>) => {
+    if (registroAlterado) {
+      setAcaoPendente(acao);
+      return;
+    }
+
+    executarAcao(acao);
+  };
+
+  const cancelarAcaoPendente = () => {
+    setAcaoPendente(null);
+  };
+
+  const continuarSemSalvar = () => {
+    if (!acaoPendente) return;
+
+    const acao = acaoPendente;
+    setAcaoPendente(null);
+    if (acao === "voltar") {
+      setRegistroAlterado(false);
+    }
+    executarAcao(acao);
+  };
+
+  const salvarEContinuar = async () => {
+    if (!acaoPendente) return;
+
+    const acao = acaoPendente;
+    const salvou = await salvarRegistroAtual({ mostrarMensagem: false });
+
+    if (!salvou) return;
+
+    setAcaoPendente(null);
+    executarAcao(acao);
+    setSnackbar({
+      open: true,
+      message: "Projeto Terapêutico Singular (PTS) salvo com sucesso!",
+      severity: "success",
+    });
+  };
 
 
 
@@ -95,12 +295,13 @@ export function EvolucaoPacientesPage({ user, onBack }: EvolucaoPacientesPagePro
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setPageView("lista")}
+              onClick={() => solicitarAcao("voltar")}
+              disabled={carregandoRegistro || salvandoRegistro}
               className="cursor-pointer"
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <h2 className="text-lg font-semibold">Registro de Evolução</h2>
+            <h2 className="text-lg font-semibold">PTS</h2>
           </div>
           <Card>
             <CardHeader>
@@ -108,6 +309,14 @@ export function EvolucaoPacientesPage({ user, onBack }: EvolucaoPacientesPagePro
             </CardHeader>
 
             <CardContent className="space-y-4">
+              {carregandoRegistro && (
+                <p className="text-sm text-gray-500">Carregando registro salvo...</p>
+              )}
+
+              {!carregandoRegistro && registroAlterado && (
+                <p className="text-sm text-amber-600">Alterações ainda não salvas.</p>
+              )}
+
               <div className="space-y-2">
                 <label className="text-sm font-medium">
                   Histórico Clínico
@@ -116,7 +325,8 @@ export function EvolucaoPacientesPage({ user, onBack }: EvolucaoPacientesPagePro
                   className="w-full border rounded-md px-3 py-2"
                   rows={3}
                   value={historicoClinico}
-                  onChange={(e) => setHistoricoClinico(e.target.value)}
+                  onChange={(e) => marcarCampoAlterado(setHistoricoClinico, e.target.value)}
+                  disabled={carregandoRegistro}
                   placeholder="Descreva o histórico clínico do paciente..."
                 />
               </div>
@@ -129,7 +339,8 @@ export function EvolucaoPacientesPage({ user, onBack }: EvolucaoPacientesPagePro
                   className="w-full border rounded-md px-3 py-2"
                   rows={3}
                   value={objetivoDoTratamento}
-                  onChange={(e) => setObjetivoDoTratamento(e.target.value)}
+                  onChange={(e) => marcarCampoAlterado(setObjetivoDoTratamento, e.target.value)}
+                  disabled={carregandoRegistro}
                   placeholder="Descreva os objetivos do tratamento..."
                 />
               </div>
@@ -142,7 +353,8 @@ export function EvolucaoPacientesPage({ user, onBack }: EvolucaoPacientesPagePro
                   className="w-full border rounded-md px-3 py-2"
                   rows={5}
                   value={tecEProcAplicados}
-                  onChange={(e) => setTecEProcAplicados(e.target.value)}
+                  onChange={(e) => marcarCampoAlterado(setTecEProcAplicados, e.target.value)}
+                  disabled={carregandoRegistro}
                   placeholder="Descreva as técnicas e procedimentos aplicados..."
                 />
               </div>
@@ -155,7 +367,8 @@ export function EvolucaoPacientesPage({ user, onBack }: EvolucaoPacientesPagePro
                   className="w-full border rounded-md px-3 py-2"
                   rows={5}
                   value={evolucaoRetrocessoDoPaciente}
-                  onChange={(e) => setEvolucaoRetrocessoDoPaciente(e.target.value)}
+                  onChange={(e) => marcarCampoAlterado(setEvolucaoRetrocessoDoPaciente, e.target.value)}
+                  disabled={carregandoRegistro}
                   placeholder="Descreva a evolução ou retrocesso do paciente..."
                 />
               </div>
@@ -168,29 +381,26 @@ export function EvolucaoPacientesPage({ user, onBack }: EvolucaoPacientesPagePro
                   className="w-full border rounded-md px-3 py-2"
                   rows={5}
                   value={recomendacoesFinais}
-                  onChange={(e) => setRecomendacoesFinais(e.target.value)}
+                  onChange={(e) => marcarCampoAlterado(setRecomendacoesFinais, e.target.value)}
+                  disabled={carregandoRegistro}
                   placeholder="Descreva as recomendações finais..."
                 />
               </div>
 
-              <div className="flex gap-2 pt-4 flex justify-end">
+              <div className="flex gap-2 pt-4 justify-end">
+                <Button
+                  className="bg-green-600 hover:bg-green-700"
+                  onClick={() => void salvarRegistroAtual()}
+                  disabled={carregandoRegistro || salvandoRegistro}
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  {salvandoRegistro ? "Salvando..." : "Salvar"}
+                </Button>
+
                 <Button
                   className="bg-blue-600 hover:bg-blue-700"
-                  onClick={() => {
-                    if (!pacienteSelecionado) return;
-
-                    generateAlunoRelatorioPDF({
-                      aluno: pacienteSelecionado,
-                      profissional: user,
-                      campos: {
-                        historicoClinico,
-                        objetivos: objetivoDoTratamento,
-                        tecnicas: tecEProcAplicados,
-                        evolucao: evolucaoRetrocessoDoPaciente,
-                        recomendacoes: recomendacoesFinais,
-                      }
-                    });
-                  }}
+                  disabled={carregandoRegistro || salvandoRegistro}
+                  onClick={() => solicitarAcao("pdf")}
                 >
                   <FileDown className="w-4 h-4 mr-2" />
                   Gerar Relatório PDF
@@ -198,13 +408,54 @@ export function EvolucaoPacientesPage({ user, onBack }: EvolucaoPacientesPagePro
 
                 <Button
                   variant="outline"
-                  onClick={() => setPageView("lista")}
+                  onClick={() => solicitarAcao("voltar")}
+                  disabled={carregandoRegistro || salvandoRegistro}
                 >
                   Voltar
                 </Button>
               </div>
             </CardContent>
           </Card>
+
+          {acaoPendente && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+              <div className="w-full max-w-md rounded-lg border border-amber-200 bg-white p-6 shadow-2xl">
+                <div className="mb-4 rounded-md bg-amber-50 px-4 py-3 text-amber-900">
+                  <h3 className="text-lg font-semibold">Alterações não salvas</h3>
+                  <p className="mt-1 text-sm">
+                    Você editou um ou mais campos e ainda não salvou. Deseja salvar antes de continuar?
+                  </p>
+                </div>
+
+                <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+                  <Button
+                    variant="outline"
+                    onClick={cancelarAcaoPendente}
+                    disabled={salvandoRegistro}
+                  >
+                    Cancelar
+                  </Button>
+
+                  <Button
+                    variant="outline"
+                    onClick={continuarSemSalvar}
+                    disabled={salvandoRegistro}
+                    className="border-red-200 text-red-700 hover:bg-red-50 hover:text-red-800"
+                  >
+                    {acaoPendente === "pdf" ? "Gerar sem salvar" : "Voltar sem salvar"}
+                  </Button>
+
+                  <Button
+                    className="bg-green-600 hover:bg-green-700"
+                    onClick={salvarEContinuar}
+                    disabled={salvandoRegistro}
+                  >
+                    {salvandoRegistro ? "Salvando..." : "Salvar e continuar"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     );
@@ -222,7 +473,7 @@ export function EvolucaoPacientesPage({ user, onBack }: EvolucaoPacientesPagePro
           >
             <ArrowLeft className="w-5 h-5" />
           </Button>
-          <h2 className="text-lg font-semibold">Evolução do Paciente</h2>
+          <h2 className="text-lg font-semibold">Projeto Terapêutico Singular (PTS)</h2>
         </div>
         <Card>
 
@@ -310,8 +561,7 @@ export function EvolucaoPacientesPage({ user, onBack }: EvolucaoPacientesPagePro
                           type="button"
                           title="Clique aqui para fazer o registro da evolução do paciente"
                           onClick={() => {
-                            setPacienteSelecionado(paciente);
-                            setPageView("registro");
+                            abrirRegistroPaciente(paciente);
                           }}
                           className="
                                     p-2 

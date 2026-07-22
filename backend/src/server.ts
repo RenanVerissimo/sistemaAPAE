@@ -49,6 +49,31 @@ async function garantirTabelaLaudos() {
   await db.query("ALTER TABLE laudos MODIFY tipo VARCHAR(100) NOT NULL");
 }
 
+async function garantirTabelaRegistrosEvolucao() {
+  await db.query(`
+    CREATE TABLE IF NOT EXISTS registros_evolucao (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      paciente_id INT NOT NULL,
+      profissional_id INT NOT NULL,
+      historico_clinico TEXT NULL,
+      objetivos_tratamento TEXT NULL,
+      tecnicas_procedimentos TEXT NULL,
+      evolucao_paciente TEXT NULL,
+      recomendacoes_finais TEXT NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY uk_registros_evolucao_paciente_profissional (paciente_id, profissional_id),
+      INDEX idx_registros_evolucao_paciente_id (paciente_id),
+      INDEX idx_registros_evolucao_profissional_id (profissional_id)
+    )
+  `);
+}
+
+async function garantirTabelas() {
+  await garantirTabelaLaudos();
+  await garantirTabelaRegistrosEvolucao();
+}
+
 /* ================= PACIENTES ================= */
 
 app.get("/pacientes", async (req: Request, res: Response) => {
@@ -476,6 +501,104 @@ app.delete("/atendimentos/:id", async (req: Request, res: Response) => {
     res.status(500).json({ message: "Erro interno do servidor" });
   }
 });
+
+/* ================= REGISTROS DE EVOLUCAO / PTS ================= */
+
+app.get("/registros-evolucao/:pacienteId", async (req: Request, res: Response) => {
+  try {
+    const pacienteId = Number(req.params.pacienteId);
+    const profissionalId = Number(req.query.profissional_id);
+
+    if (!pacienteId || !profissionalId) {
+      return res.status(400).json({ message: "paciente_id e profissional_id sao obrigatorios" });
+    }
+
+    const [rows]: any = await db.query(
+      `SELECT
+         id,
+         paciente_id AS pacienteId,
+         profissional_id AS profissionalId,
+         historico_clinico AS historicoClinico,
+         objetivos_tratamento AS objetivosTratamento,
+         tecnicas_procedimentos AS tecnicasProcedimentos,
+         evolucao_paciente AS evolucaoPaciente,
+         recomendacoes_finais AS recomendacoesFinais,
+         created_at AS createdAt,
+         updated_at AS updatedAt
+       FROM registros_evolucao
+       WHERE paciente_id = ? AND profissional_id = ?
+       LIMIT 1`,
+      [pacienteId, profissionalId]
+    );
+
+    res.json(rows[0] ?? null);
+  } catch (error) {
+    console.error("Erro ao buscar registro de evolucao:", error);
+    res.status(500).json({ message: "Erro interno do servidor" });
+  }
+});
+
+app.put("/registros-evolucao/:pacienteId", async (req: Request, res: Response) => {
+  try {
+    const pacienteId = Number(req.params.pacienteId);
+    const {
+      profissional_id,
+      historicoClinico,
+      objetivosTratamento,
+      tecnicasProcedimentos,
+      evolucaoPaciente,
+      recomendacoesFinais,
+    } = req.body;
+    const profissionalId = Number(profissional_id);
+
+    if (!pacienteId || !profissionalId) {
+      return res.status(400).json({ message: "paciente_id e profissional_id sao obrigatorios" });
+    }
+
+    const [pacienteRows]: any = await db.query("SELECT id FROM pacientes WHERE id = ?", [pacienteId]);
+    if (pacienteRows.length === 0) {
+      return res.status(404).json({ message: "Paciente nao encontrado" });
+    }
+
+    const [profissionalRows]: any = await db.query("SELECT id FROM profissionais WHERE id = ?", [profissionalId]);
+    if (profissionalRows.length === 0) {
+      return res.status(404).json({ message: "Profissional nao encontrado" });
+    }
+
+    await db.query(
+      `INSERT INTO registros_evolucao (
+         paciente_id,
+         profissional_id,
+         historico_clinico,
+         objetivos_tratamento,
+         tecnicas_procedimentos,
+         evolucao_paciente,
+         recomendacoes_finais
+       )
+       VALUES (?, ?, ?, ?, ?, ?, ?)
+       ON DUPLICATE KEY UPDATE
+         historico_clinico = VALUES(historico_clinico),
+         objetivos_tratamento = VALUES(objetivos_tratamento),
+         tecnicas_procedimentos = VALUES(tecnicas_procedimentos),
+         evolucao_paciente = VALUES(evolucao_paciente),
+         recomendacoes_finais = VALUES(recomendacoes_finais)`,
+      [
+        pacienteId,
+        profissionalId,
+        historicoClinico ?? null,
+        objetivosTratamento ?? null,
+        tecnicasProcedimentos ?? null,
+        evolucaoPaciente ?? null,
+        recomendacoesFinais ?? null,
+      ]
+    );
+
+    res.json({ message: "Registro de evolucao salvo com sucesso" });
+  } catch (error) {
+    console.error("Erro ao salvar registro de evolucao:", error);
+    res.status(500).json({ message: "Erro interno do servidor" });
+  }
+});
 /* ================= LAUDOS ================= */
 app.use("/api/laudos", laudoRoutes);
 
@@ -517,8 +640,8 @@ app.use((req, res) => {
 
 
 
-garantirTabelaLaudos().catch((error) => {
-  console.error("Erro ao preparar tabela de laudos:", error);
+garantirTabelas().catch((error) => {
+  console.error("Erro ao preparar tabelas:", error);
   process.exit(1);
 });
 

@@ -1,4 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL;
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
 
 // ==================== PACIENTES ====================
 
@@ -245,6 +245,65 @@ export const deleteAtendimento = async (id: number, profissionalId: number) => {
     return await response.json();
   } catch (error) {
     console.error("Erro ao deletar atendimento:", error);
+    throw error;
+  }
+};
+
+// ==================== REGISTROS DE EVOLUCAO / PTS ====================
+
+export interface RegistroEvolucao {
+  id?: number;
+  pacienteId: number;
+  profissionalId: number;
+  historicoClinico?: string | null;
+  objetivosTratamento?: string | null;
+  tecnicasProcedimentos?: string | null;
+  evolucaoPaciente?: string | null;
+  recomendacoesFinais?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export const getRegistroEvolucao = async (
+  pacienteId: number,
+  profissionalId: number
+): Promise<RegistroEvolucao | null> => {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/registros-evolucao/${pacienteId}?profissional_id=${profissionalId}`
+    );
+    if (!response.ok) throw new Error("Erro ao buscar registro de evolucao");
+    return await response.json();
+  } catch (error) {
+    console.error("Erro ao buscar registro de evolucao:", error);
+    throw error;
+  }
+};
+
+export const salvarRegistroEvolucao = async (
+  pacienteId: number,
+  data: {
+    profissional_id: number;
+    historicoClinico: string;
+    objetivosTratamento: string;
+    tecnicasProcedimentos: string;
+    evolucaoPaciente: string;
+    recomendacoesFinais: string;
+  }
+) => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/registros-evolucao/${pacienteId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || "Erro ao salvar registro de evolucao");
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Erro ao salvar registro de evolucao:", error);
     throw error;
   }
 };
