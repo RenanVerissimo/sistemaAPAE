@@ -288,7 +288,7 @@ export default function ProfissionalCard() {
                         onClick={() => navigate("/SecretariaDashboard/ProfissionalCard/StatusPTS")}
                     >
                         <ClipboardCheck className="w-4 h-4 mr-2" />
-                        Status PTS
+                        Controle PTS
                     </Button>
 
                     <Button

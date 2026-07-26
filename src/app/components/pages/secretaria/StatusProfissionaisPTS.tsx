@@ -159,9 +159,9 @@ export default function StatusProfissionaisPTS() {
         </Button>
 
         <div>
-          <h2 className="text-lg font-semibold">Status PTS dos Profissionais</h2>
+          <h2 className="text-lg font-semibold"> Controle de PTS dos Profissionais</h2>
           <p className="text-sm text-gray-500">
-            Controle de PTS por paciente e profissional responsavel.
+            Controle de PTS por paciente e profissional responsável.
           </p>
         </div>
       </div>
