@@ -49,9 +49,9 @@ async function garantirTabelaLaudos() {
   await db.query("ALTER TABLE laudos MODIFY tipo VARCHAR(100) NOT NULL");
 }
 
-async function garantirTabelaRegistrosEvolucao() {
+async function garantirTabelaRegistrosPTS() {
   await db.query(`
-    CREATE TABLE IF NOT EXISTS registros_evolucao (
+    CREATE TABLE IF NOT EXISTS registros_pts (
       id INT AUTO_INCREMENT PRIMARY KEY,
       paciente_id INT NOT NULL,
       profissional_id INT NOT NULL,
@@ -60,18 +60,28 @@ async function garantirTabelaRegistrosEvolucao() {
       tecnicas_procedimentos TEXT NULL,
       evolucao_paciente TEXT NULL,
       recomendacoes_finais TEXT NULL,
+      status_prof_pts TINYINT(1) NOT NULL DEFAULT 0,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-      UNIQUE KEY uk_registros_evolucao_paciente_profissional (paciente_id, profissional_id),
-      INDEX idx_registros_evolucao_paciente_id (paciente_id),
-      INDEX idx_registros_evolucao_profissional_id (profissional_id)
+      UNIQUE KEY uk_registros_pts_paciente_profissional (paciente_id, profissional_id),
+      INDEX idx_registros_pts_paciente_id (paciente_id),
+      INDEX idx_registros_pts_profissional_id (profissional_id)
     )
   `);
+
+  const [columns]: any = await db.query("SHOW COLUMNS FROM registros_pts");
+  const columnNames = new Set(columns.map((column: any) => column.Field));
+
+  if (!columnNames.has("status_prof_pts")) {
+    await db.query(
+      "ALTER TABLE registros_pts ADD COLUMN status_prof_pts TINYINT(1) NOT NULL DEFAULT 0"
+    );
+  }
 }
 
 async function garantirTabelas() {
   await garantirTabelaLaudos();
-  await garantirTabelaRegistrosEvolucao();
+  await garantirTabelaRegistrosPTS();
 }
 
 /* ================= PACIENTES ================= */
@@ -230,6 +240,34 @@ app.get("/profissionais/qtd", async (req: Request, res: Response) => {
     res.json({ total: rows[0].total });
   } catch (error) {
     console.error("Erro ao contar profissionais:", error);
+    res.status(500).json({ message: "Erro interno do servidor" });
+  }
+});
+
+app.get("/profissionais/status-pts", async (req: Request, res: Response) => {
+  try {
+    const [rows] = await db.query(`
+      SELECT
+        pac.id AS pacienteId,
+        pac.nome AS pacienteNome,
+        p.id AS profissionalId,
+        p.nome AS profissionalNome,
+        p.especialidade,
+        p.registroProfissional,
+        COALESCE(r.status_prof_pts, 0) AS statusProfPts
+      FROM pacientes pac
+      CROSS JOIN profissionais p
+      LEFT JOIN registros_pts r
+        ON r.paciente_id = pac.id
+       AND r.profissional_id = p.id
+      WHERE p.rolee <> 'SECRETARIA'
+        AND COALESCE(pac.status, 'Ativo') = 'Ativo'
+      ORDER BY pac.nome ASC, p.nome ASC
+    `);
+
+    res.json(rows);
+  } catch (error) {
+    console.error("Erro ao buscar status PTS dos profissionais:", error);
     res.status(500).json({ message: "Erro interno do servidor" });
   }
 });
@@ -502,7 +540,7 @@ app.delete("/atendimentos/:id", async (req: Request, res: Response) => {
   }
 });
 
-/* ================= REGISTROS DE EVOLUCAO / PTS ================= */
+/* ================= REGISTROS PTS ================= */
 
 app.get("/registros-evolucao/:pacienteId", async (req: Request, res: Response) => {
   try {
@@ -525,7 +563,7 @@ app.get("/registros-evolucao/:pacienteId", async (req: Request, res: Response) =
          recomendacoes_finais AS recomendacoesFinais,
          created_at AS createdAt,
          updated_at AS updatedAt
-       FROM registros_evolucao
+       FROM registros_pts
        WHERE paciente_id = ? AND profissional_id = ?
        LIMIT 1`,
       [pacienteId, profissionalId]
@@ -534,6 +572,82 @@ app.get("/registros-evolucao/:pacienteId", async (req: Request, res: Response) =
     res.json(rows[0] ?? null);
   } catch (error) {
     console.error("Erro ao buscar registro de evolucao:", error);
+    res.status(500).json({ message: "Erro interno do servidor" });
+  }
+});
+
+app.get("/registros-pts/:pacienteId/:profissionalId/relatorio", async (req: Request, res: Response) => {
+  try {
+    const pacienteId = Number(req.params.pacienteId);
+    const profissionalId = Number(req.params.profissionalId);
+
+    if (!pacienteId || !profissionalId) {
+      return res.status(400).json({ message: "paciente_id e profissional_id sao obrigatorios" });
+    }
+
+    const [rows]: any = await db.query(
+      `SELECT
+         pac.id AS pacienteId,
+         pac.nome AS pacienteNome,
+         pac.cpf,
+         pac.prontuario,
+         pac.cartaoSUS,
+         pac.descricao,
+         prof.id AS profissionalId,
+         prof.nome AS profissionalNome,
+         prof.email AS profissionalEmail,
+         prof.especialidade,
+         prof.outraEspecialidade,
+         prof.registroProfissional,
+         r.historico_clinico AS historicoClinico,
+         r.objetivos_tratamento AS objetivosTratamento,
+         r.tecnicas_procedimentos AS tecnicasProcedimentos,
+         r.evolucao_paciente AS evolucaoPaciente,
+         r.recomendacoes_finais AS recomendacoesFinais,
+         r.status_prof_pts AS statusProfPts
+       FROM registros_pts r
+       INNER JOIN pacientes pac ON pac.id = r.paciente_id
+       INNER JOIN profissionais prof ON prof.id = r.profissional_id
+       WHERE r.paciente_id = ?
+         AND r.profissional_id = ?
+         AND r.status_prof_pts = 1
+       LIMIT 1`,
+      [pacienteId, profissionalId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Relatorio PTS concluido nao encontrado" });
+    }
+
+    const row = rows[0];
+
+    res.json({
+      aluno: {
+        id: row.pacienteId,
+        nome: row.pacienteNome,
+        cpf: row.cpf,
+        prontuario: row.prontuario,
+        cartaoSUS: row.cartaoSUS,
+        descricao: row.descricao,
+      },
+      profissional: {
+        id: row.profissionalId,
+        nome: row.profissionalNome,
+        email: row.profissionalEmail,
+        especialidade: row.especialidade,
+        outraEspecialidade: row.outraEspecialidade,
+        registroProfissional: row.registroProfissional,
+      },
+      campos: {
+        historicoClinico: row.historicoClinico,
+        objetivos: row.objetivosTratamento,
+        tecnicas: row.tecnicasProcedimentos,
+        evolucao: row.evolucaoPaciente,
+        recomendacoes: row.recomendacoesFinais,
+      },
+    });
+  } catch (error) {
+    console.error("Erro ao buscar relatorio PTS:", error);
     res.status(500).json({ message: "Erro interno do servidor" });
   }
 });
@@ -566,22 +680,24 @@ app.put("/registros-evolucao/:pacienteId", async (req: Request, res: Response) =
     }
 
     await db.query(
-      `INSERT INTO registros_evolucao (
+      `INSERT INTO registros_pts (
          paciente_id,
          profissional_id,
          historico_clinico,
          objetivos_tratamento,
          tecnicas_procedimentos,
          evolucao_paciente,
-         recomendacoes_finais
+         recomendacoes_finais,
+         status_prof_pts
        )
-       VALUES (?, ?, ?, ?, ?, ?, ?)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 1)
        ON DUPLICATE KEY UPDATE
          historico_clinico = VALUES(historico_clinico),
          objetivos_tratamento = VALUES(objetivos_tratamento),
          tecnicas_procedimentos = VALUES(tecnicas_procedimentos),
          evolucao_paciente = VALUES(evolucao_paciente),
-         recomendacoes_finais = VALUES(recomendacoes_finais)`,
+         recomendacoes_finais = VALUES(recomendacoes_finais),
+         status_prof_pts = VALUES(status_prof_pts)`,
       [
         pacienteId,
         profissionalId,

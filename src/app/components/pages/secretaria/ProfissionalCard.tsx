@@ -6,7 +6,7 @@ import SnackbarComponent from "../../SnackbarComponent";
 import PriorityHighIcon from '@mui/icons-material/PriorityHigh';
 import { ProfessionalType, Profissional } from "../../interfaces/interfaces";
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ChevronLeft, FileText, Pencil, Trash2, UserPlus, KeyRound, Eye, EyeOff, Copy, Sparkles } from "lucide-react";
+import { ChevronLeft, ClipboardCheck, FileText, Pencil, Trash2, UserPlus, KeyRound, Eye, EyeOff, Copy, Sparkles } from "lucide-react";
 import { atualizarSenhaProfissional } from "@/app/services/api";
 
 function limparTexto(t: string) {
@@ -283,6 +283,14 @@ export default function ProfissionalCard() {
 
                 {/* DIREITA */}
                 <div className="flex flex-wrap gap-2">
+                    <Button
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                        onClick={() => navigate("/SecretariaDashboard/ProfissionalCard/StatusPTS")}
+                    >
+                        <ClipboardCheck className="w-4 h-4 mr-2" />
+                        Status PTS
+                    </Button>
+
                     <Button
                         className="bg-blue-600 hover:bg-blue-700 text-white"
                         onClick={() => navigate("/SecretariaDashboard/ProfissionalCard/VerAtendimentos")}

@@ -102,6 +102,55 @@ export const getQtdProfissionais = async (): Promise<number> => {
   }
 };
 
+export interface StatusProfissionalPTS {
+  pacienteId: number;
+  pacienteNome: string;
+  profissionalId: number;
+  profissionalNome: string;
+  especialidade?: string;
+  registroProfissional?: string | null;
+  statusProfPts: boolean | number;
+}
+
+export const getStatusProfissionaisPTS = async (): Promise<StatusProfissionalPTS[]> => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/profissionais/status-pts`);
+    if (!response.ok) throw new Error("Erro ao buscar status PTS dos profissionais");
+    return await response.json();
+  } catch (error) {
+    console.error("Erro ao buscar status PTS dos profissionais:", error);
+    return [];
+  }
+};
+
+export interface RelatorioPTSData {
+  aluno: any;
+  profissional: any;
+  campos: {
+    historicoClinico?: string | null;
+    objetivos?: string | null;
+    tecnicas?: string | null;
+    evolucao?: string | null;
+    recomendacoes?: string | null;
+  };
+}
+
+export const getRelatorioPTS = async (
+  pacienteId: number,
+  profissionalId: number
+): Promise<RelatorioPTSData> => {
+  const response = await fetch(
+    `${API_BASE_URL}/registros-pts/${pacienteId}/${profissionalId}/relatorio`
+  );
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Erro ao buscar relatorio PTS");
+  }
+
+  return await response.json();
+};
+
 export const cadastrarProfissional = async (data: {
   nome: string;
   email: string;
