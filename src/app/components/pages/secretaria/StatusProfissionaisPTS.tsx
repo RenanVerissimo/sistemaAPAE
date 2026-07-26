@@ -59,6 +59,7 @@ export default function StatusProfissionaisPTS() {
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [carregando, setCarregando] = useState(true);
   const [baixandoRelatorio, setBaixandoRelatorio] = useState<string | null>(null);
+  const [erroRelatorio, setErroRelatorio] = useState<string | null>(null);
 
   useEffect(() => {
     const carregarStatus = async () => {
@@ -134,13 +135,16 @@ export default function StatusProfissionaisPTS() {
   const baixarRelatorioPTS = async (pacienteId: number, profissionalId: number) => {
     const downloadKey = `${pacienteId}-${profissionalId}`;
     setBaixandoRelatorio(downloadKey);
+    setErroRelatorio(null);
 
     try {
       const relatorio = await getRelatorioPTS(pacienteId, profissionalId);
       generateAlunoRelatorioPDF(relatorio);
     } catch (error) {
       console.error("Erro ao baixar relatorio PTS:", error);
-      alert("Nao foi possivel baixar o relatorio PTS.");
+      setErroRelatorio(
+        error instanceof Error ? error.message : "Nao foi possivel baixar o relatorio PTS."
+      );
     } finally {
       setBaixandoRelatorio(null);
     }
@@ -230,6 +234,12 @@ export default function StatusProfissionaisPTS() {
           </div>
         </div>
       </div>
+
+      {erroRelatorio && (
+        <div className="rounded-md border border-red-200 bg-red-50 px-3 py-2 text-sm font-medium text-red-700">
+          {erroRelatorio}
+        </div>
+      )}
 
       <Card className="rounded-xl overflow-hidden shadow-md border border-gray-200">
         <div className="w-full overflow-x-auto">

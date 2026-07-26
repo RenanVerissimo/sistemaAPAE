@@ -127,11 +127,11 @@ export interface RelatorioPTSData {
   aluno: any;
   profissional: any;
   campos: {
-    historicoClinico?: string | null;
-    objetivos?: string | null;
-    tecnicas?: string | null;
-    evolucao?: string | null;
-    recomendacoes?: string | null;
+    historicoClinico?: string;
+    objetivos?: string;
+    tecnicas?: string;
+    evolucao?: string;
+    recomendacoes?: string;
   };
 }
 
@@ -148,7 +148,18 @@ export const getRelatorioPTS = async (
     throw new Error(errorData.message || "Erro ao buscar relatorio PTS");
   }
 
-  return await response.json();
+  const data = await response.json();
+
+  return {
+    ...data,
+    campos: {
+      historicoClinico: data.campos?.historicoClinico ?? "",
+      objetivos: data.campos?.objetivos ?? "",
+      tecnicas: data.campos?.tecnicas ?? "",
+      evolucao: data.campos?.evolucao ?? "",
+      recomendacoes: data.campos?.recomendacoes ?? "",
+    },
+  };
 };
 
 export const cadastrarProfissional = async (data: {
