@@ -61,8 +61,8 @@ async function garantirTabelaRegistrosPTS() {
       evolucao_paciente TEXT NULL,
       recomendacoes_finais TEXT NULL,
       status_prof_pts TINYINT(1) NOT NULL DEFAULT 0,
-      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      created_at DATETIME NULL,
+      updated_at DATETIME NULL,
       UNIQUE KEY uk_registros_pts_paciente_profissional (paciente_id, profissional_id),
       INDEX idx_registros_pts_paciente_id (paciente_id),
       INDEX idx_registros_pts_profissional_id (profissional_id)
@@ -76,6 +76,18 @@ async function garantirTabelaRegistrosPTS() {
     await db.query(
       "ALTER TABLE registros_pts ADD COLUMN status_prof_pts TINYINT(1) NOT NULL DEFAULT 0"
     );
+  }
+
+  if (columnNames.has("created_at")) {
+    await db.query("ALTER TABLE registros_pts MODIFY created_at DATETIME NULL");
+  } else {
+    await db.query("ALTER TABLE registros_pts ADD COLUMN created_at DATETIME NULL");
+  }
+
+  if (columnNames.has("updated_at")) {
+    await db.query("ALTER TABLE registros_pts MODIFY updated_at DATETIME NULL");
+  } else {
+    await db.query("ALTER TABLE registros_pts ADD COLUMN updated_at DATETIME NULL");
   }
 }
 
@@ -688,16 +700,19 @@ app.put("/registros-evolucao/:pacienteId", async (req: Request, res: Response) =
          tecnicas_procedimentos,
          evolucao_paciente,
          recomendacoes_finais,
-         status_prof_pts
+         status_prof_pts,
+         created_at,
+         updated_at
        )
-       VALUES (?, ?, ?, ?, ?, ?, ?, 1)
+       VALUES (?, ?, ?, ?, ?, ?, ?, 1, DATE_SUB(UTC_TIMESTAMP(), INTERVAL 3 HOUR), DATE_SUB(UTC_TIMESTAMP(), INTERVAL 3 HOUR))
        ON DUPLICATE KEY UPDATE
          historico_clinico = VALUES(historico_clinico),
          objetivos_tratamento = VALUES(objetivos_tratamento),
          tecnicas_procedimentos = VALUES(tecnicas_procedimentos),
          evolucao_paciente = VALUES(evolucao_paciente),
          recomendacoes_finais = VALUES(recomendacoes_finais),
-         status_prof_pts = VALUES(status_prof_pts)`,
+         status_prof_pts = VALUES(status_prof_pts),
+         updated_at = DATE_SUB(UTC_TIMESTAMP(), INTERVAL 3 HOUR)`,
       [
         pacienteId,
         profissionalId,

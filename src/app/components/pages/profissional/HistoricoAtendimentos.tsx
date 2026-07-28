@@ -48,7 +48,12 @@ export function HistoricoAtendimentos({ user, setSnackbar }: HistoricoAtendiment
   const ontem = new Date();
   ontem.setDate(hoje.getDate() - 1);
 
-  const formatarParaInput = (d: Date) => d.toISOString().split("T")[0];
+  const formatarParaInput = (d: Date) => {
+    const ano = d.getFullYear();
+    const mes = String(d.getMonth() + 1).padStart(2, "0");
+    const dia = String(d.getDate()).padStart(2, "0");
+    return `${ano}-${mes}-${dia}`;
+  };
 
   const [dataInicio, setDataInicio] = useState(formatarParaInput(ontem));
   const [dataFim, setDataFim] = useState(formatarParaInput(hoje));
@@ -152,27 +157,18 @@ export function HistoricoAtendimentos({ user, setSnackbar }: HistoricoAtendiment
 
   const [editPacienteNome, setEditPacienteNome] = useState("");
 
-  // Carrega profissionais da mesma especialidade
+  // Carrega todos os profissionais para permitir visualizar atendimentos de qualquer area.
   useEffect(() => {
     const carregarProfissionais = async () => {
       try {
         const lista: Profissional[] = await getAllProfissionais();
-        const mesmaEspecialidade = lista.filter(
-          (p) =>
-            p.especialidade?.toLowerCase() === user.especialidade?.toLowerCase()
-        );
-        setProfissionais(mesmaEspecialidade);
-
-        // Pré-seleciona o profissional logado
-        if (user.id) {
-          setProfissionalId(String(user.id));
-        }
+        setProfissionais(lista);
       } catch (err) {
         console.error("Erro ao carregar profissionais:", err);
       }
     };
     carregarProfissionais();
-  }, [user.especialidade, user.id]);
+  }, []);
 
   // Filtra atendimentos por profissional selecionado (client-side)
   const atendimentosFiltrados = useMemo(() => {
@@ -210,7 +206,6 @@ export function HistoricoAtendimentos({ user, setSnackbar }: HistoricoAtendiment
     try {
       const data = await getAtendimentos({
         paciente: nomePaciente,
-        especialidade: user.especialidade,
         dataInicio,
         dataFim,
       });
@@ -229,7 +224,7 @@ export function HistoricoAtendimentos({ user, setSnackbar }: HistoricoAtendiment
     setNomePaciente("");
     setDataInicio(formatarParaInput(ontem));
     setDataFim(formatarParaInput(hoje));
-    setProfissionalId(user.id ? String(user.id) : "");
+    setProfissionalId("");
     setAtendimentos([]);
     setCarregado(false);
   };

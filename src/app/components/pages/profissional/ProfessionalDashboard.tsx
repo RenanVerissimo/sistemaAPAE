@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from "react";
+﻿import { useEffect, useState, useCallback } from "react";
 import { useNavigate, useLocation, Routes, Route } from "react-router-dom";
 import { Button } from "@/app/components/ui/button";
 import { Card, CardContent } from "@/app/components/ui/card";
@@ -52,13 +52,15 @@ export function ProfessionalDashboard({
 
   const carregarStats = useCallback(async () => {
     try {
+      const formatarParaInput = (date: Date) => {
+        const ano = date.getFullYear();
+        const mes = String(date.getMonth() + 1).padStart(2, "0");
+        const dia = String(date.getDate()).padStart(2, "0");
+        return `${ano}-${mes}-${dia}`;
+      };
       const hoje = new Date();
-      const inicioMes = new Date(hoje.getFullYear(), hoje.getMonth(), 1)
-        .toISOString()
-        .split("T")[0];
-      const fimMes = new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0)
-        .toISOString()
-        .split("T")[0];
+      const inicioMes = formatarParaInput(new Date(hoje.getFullYear(), hoje.getMonth(), 1));
+      const fimMes = formatarParaInput(new Date(hoje.getFullYear(), hoje.getMonth() + 1, 0));
       const [atendimentos, qtdPac] = await Promise.all([
         getAtendimentos({
           especialidade: user.especialidade,
@@ -223,28 +225,6 @@ export function ProfessionalDashboard({
                 </h2>
                 <div className="space-y-4">
                   <Card
-                    className="hover:bg-gray-50 transition-colors cursor-pointer"
-                    onClick={() => navigate("ControlePTS")}
-                  >
-                    <CardContent className="pt-6">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 bg-gray-100 rounded-lg flex items-center justify-center">
-                            <ClipboardList className="w-5 h-5 text-gray-600" />
-                          </div>
-                          <div>
-                            <p className="font-semibold">Controle PTS</p>
-                            <p className="text-sm text-gray-500">
-                              Controle de quem já realizou o PTS
-                            </p>
-                          </div>
-                        </div>
-                        <ChevronRight className="w-5 h-5 text-gray-400" />
-                      </div>
-                    </CardContent>
-                  </Card>
-
-                  <Card
                     onClick={() => navigate("EvolucaoPaciente")}
                     className="bg-gradient-to-r from-emerald-500 to-emerald-600 text-white hover:from-emerald-600 hover:to-emerald-700 transition-all shadow-lg cursor-pointer"
                   >
@@ -289,15 +269,16 @@ export function ProfessionalDashboard({
             />
           }
         />
-        <Route
+{/*         <Route
           path="ControlePTS"
           element={
             <ControlePTS
+              user={user}
               onBack={() => navigate("/ProfissionalDashboard")}
               setSnackbar={setSnackbar}
             />
           }
-        />
+        /> */}
         <Route
           path="EvolucaoPaciente"
           element={

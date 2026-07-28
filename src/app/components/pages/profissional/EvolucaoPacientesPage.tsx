@@ -3,11 +3,11 @@ import { useEffect, useState, type Dispatch, type SetStateAction } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/app/components/ui/card';
 import { Button } from '@/app/components/ui/button';
 import { Input } from '@/app/components/ui/input';
-import { ArrowLeft, ArrowRight, FileDown, Save, Search as SearchIcon } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle2, FileDown, Save, Search as SearchIcon, XCircle } from 'lucide-react';
 import { Badge } from "@/app/components/ui/badge";
 import { generateAlunoRelatorioPDF } from "@/utils/generateAlunoRelatorioPDF";
-import { getAllPacientes, getRegistroEvolucao, salvarRegistroEvolucao } from "@/app/services/api";
-import { Relatorio, User, Paciente } from '../../interfaces/interfaces';
+import { getAllPacientes, getRegistroEvolucao, getStatusProfissionaisPTS, salvarRegistroEvolucao } from "@/app/services/api";
+import { User, Paciente } from '../../interfaces/interfaces';
 
 interface SnackbarState {
   open: boolean;
@@ -28,8 +28,6 @@ export function EvolucaoPacientesPage({ user, onBack, setSnackbar }: EvolucaoPac
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
 
   const [searchPaciente, setSearchPaciente] = useState('');
-  const [relatorios] = useState<Relatorio[]>([]);
-
   const [historicoClinico, setHistoricoClinico] = useState('');
   const [objetivoDoTratamento, setObjetivoDoTratamento] = useState('');
   const [tecEProcAplicados, setTecEProcAplicados] = useState('');
@@ -39,6 +37,7 @@ export function EvolucaoPacientesPage({ user, onBack, setSnackbar }: EvolucaoPac
   const [salvandoRegistro, setSalvandoRegistro] = useState(false);
   const [registroAlterado, setRegistroAlterado] = useState(false);
   const [acaoPendente, setAcaoPendente] = useState<AcaoPendente>(null);
+  const [statusPtsPorPaciente, setStatusPtsPorPaciente] = useState<Record<number, boolean>>({});
 
   const ITEMS_PER_PAGE = 10;
   const [currentPage, setCurrentPage] = useState(1);
@@ -58,6 +57,31 @@ export function EvolucaoPacientesPage({ user, onBack, setSnackbar }: EvolucaoPac
     };
     carregarPacientes();
   }, []);
+
+  useEffect(() => {
+    const carregarStatusPts = async () => {
+      const profissionalId = Number(user.id);
+      if (!profissionalId) return;
+
+      try {
+        const status = await getStatusProfissionaisPTS();
+        const statusDoProfissional = status.reduce<Record<number, boolean>>((mapa, registro) => {
+          if (Number(registro.profissionalId) === profissionalId) {
+            mapa[registro.pacienteId] =
+              registro.statusProfPts === true || Number(registro.statusProfPts) === 1;
+          }
+
+          return mapa;
+        }, {});
+
+        setStatusPtsPorPaciente(statusDoProfissional);
+      } catch (err) {
+        console.error("Erro ao carregar status PTS:", err);
+      }
+    };
+
+    carregarStatusPts();
+  }, [user.id]);
 
   useEffect(() => {
     const bloquearSaidaComAlteracoes = (event: BeforeUnloadEvent) => {
@@ -156,6 +180,10 @@ export function EvolucaoPacientesPage({ user, onBack, setSnackbar }: EvolucaoPac
         recomendacoesFinais,
       });
 
+      setStatusPtsPorPaciente((prev) => ({
+        ...prev,
+        [pacienteSelecionado.id]: true,
+      }));
       setRegistroAlterado(false);
 
       if (mostrarMensagem) {
@@ -263,21 +291,6 @@ export function EvolucaoPacientesPage({ user, onBack, setSnackbar }: EvolucaoPac
   const indexOfLastPaciente = currentPage * ITEMS_PER_PAGE;
   const indexOfFirstPaciente = indexOfLastPaciente - ITEMS_PER_PAGE;
   const pacientesPaginadosLista = pacientesFiltrados.slice(indexOfFirstPaciente, indexOfLastPaciente);
-
-  const getConsultasMesPaciente = (pacienteNome: string) => {
-    const agora = new Date();
-    const mes = agora.getMonth();
-    const ano = agora.getFullYear();
-
-    return relatorios.filter((r) => {
-      const data = new Date(r.data);
-      return (
-        r.alunoNome === pacienteNome &&
-        data.getMonth() === mes &&
-        data.getFullYear() === ano
-      );
-    }).length;
-  };
 
   const resumoDescricao = (texto = "", limite = 45) => {
     if (texto.length <= limite) return texto;
@@ -493,18 +506,28 @@ export function EvolucaoPacientesPage({ user, onBack, setSnackbar }: EvolucaoPac
             </div>
 
             {/* Tabela */}
-            <div className="overflow-x-auto rounded-md border">
-              <table className="w-full text-sm">
+            <div className="overflow-hidden rounded-md border">
+              <table className="w-full table-fixed text-xs sm:text-sm">
+                <colgroup>
+                  <col className="w-[16%]" />
+                  <col className="w-[9%]" />
+                  <col className="w-[11%]" />
+                  <col className="w-[13%]" />
+                  <col className="w-[9%]" />
+                  <col className="w-[24%]" />
+                  <col className="w-[13%]" />
+                  <col className="w-[5%]" />
+                </colgroup>
                 <thead className="bg-gray-100">
                   <tr>
-                    <th className="px-4 py-3 text-left font-semibold">Nome</th>
-                    <th className="px-4 py-3 text-left font-semibold">Prontuário</th>
-                    <th className="px-4 py-3 text-left font-semibold">CPF</th>
-                    <th className="px-4 py-3 text-center font-semibold">CNIS</th>
-                    <th className="px-4 py-3 text-left font-semibold">Status</th>
-                    <th className="px-4 py-3 text-center font-semibold">Atendimentos (mês)</th>
-                    <th className="px-4 py-3 text-left font-semibold">Descrição</th>
-                    <th className="px-4 py-3 text-center font-semibold">Ações</th>
+                    <th className="px-2 py-3 text-left font-semibold">Nome</th>
+                    <th className="px-2 py-3 text-left font-semibold">Prontuário</th>
+                    <th className="px-2 py-3 text-left font-semibold">CPF</th>
+                    <th className="px-2 py-3 text-center font-semibold">CNIS</th>
+                    <th className="px-2 py-3 text-left font-semibold">Status</th>
+                    <th className="px-2 py-3 text-left font-semibold">Descrição</th>
+                    <th className="px-2 py-3 text-center font-semibold">Rel. PTS</th>
+                    <th className="px-2 py-3 text-center font-semibold">Ações</th>
                   </tr>
                 </thead>
 
@@ -514,12 +537,12 @@ export function EvolucaoPacientesPage({ user, onBack, setSnackbar }: EvolucaoPac
                       key={paciente.id}
                       className="border-t hover:bg-gray-50 transition"
                     >
-                      <td className="px-4 py-3 font-medium">{paciente.nome}</td>
-                      <td className="px-4 py-3">{paciente.prontuario}</td>
-                      <td className="px-4 py-3">{paciente.cpf || "-"}</td>
-                      <td className="px-4 py-3 text-center">{paciente.cartaoSUS || "-"}</td>
+                      <td className="px-2 py-3 font-medium leading-snug break-words">{paciente.nome}</td>
+                      <td className="px-2 py-3 break-words">{paciente.prontuario}</td>
+                      <td className="px-2 py-3 break-all">{paciente.cpf || "-"}</td>
+                      <td className="px-2 py-3 text-center break-all">{paciente.cartaoSUS || "-"}</td>
 
-                      <td className="px-4 py-3">
+                      <td className="px-2 py-3">
                         <Badge
                           className={
                             paciente.status === "Ativo"
@@ -531,17 +554,13 @@ export function EvolucaoPacientesPage({ user, onBack, setSnackbar }: EvolucaoPac
                         </Badge>
                       </td>
 
-                      <td className="px-4 py-3 text-center font-semibold">
-                        {getConsultasMesPaciente(paciente.nome)}
-                      </td>
-
-                      <td className="px-4 py-3 max-w-xs">
+                      <td className="px-2 py-3">
                         {paciente.descricao ? (
-                          <div className="text-sm text-gray-700">
-                            <span>{resumoDescricao(paciente.descricao, 45)}</span>
-                            {paciente.descricao.length > 45 && (
+                          <div className="text-xs leading-snug text-gray-700 sm:text-sm">
+                            <span>{resumoDescricao(paciente.descricao, 38)}</span>
+                            {paciente.descricao.length > 38 && (
                               <button
-                                className="text-blue-600 text-xs ml-2 hover:underline"
+                                className="ml-1 text-xs text-blue-600 hover:underline"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   setDescricaoSelecionada(paciente.descricao || "");
@@ -556,7 +575,20 @@ export function EvolucaoPacientesPage({ user, onBack, setSnackbar }: EvolucaoPac
                           <span className="text-gray-400 text-sm">—</span>
                         )}
                       </td>
-                      <td className="px-4 py-3 text-center">
+                      <td className="px-2 py-3 text-center">
+                        {statusPtsPorPaciente[paciente.id] ? (
+                          <Badge className="bg-green-100 px-2 text-green-700">
+                            <CheckCircle2 className="mr-1 h-3.5 w-3.5" />
+                            Concluído
+                          </Badge>
+                        ) : (
+                          <Badge className="bg-amber-100 px-2 text-amber-700">
+                            <XCircle className="mr-1 h-3.5 w-3.5" />
+                            Pendente
+                          </Badge>
+                        )}
+                      </td>
+                      <td className="px-2 py-3 text-center">
                         <button
                           type="button"
                           title="Clique aqui para fazer o registro da evolução do paciente"
@@ -564,7 +596,7 @@ export function EvolucaoPacientesPage({ user, onBack, setSnackbar }: EvolucaoPac
                             abrirRegistroPaciente(paciente);
                           }}
                           className="
-                                    p-2 
+                                    p-1.5 
                                     rounded-full 
                                     text-blue-600 
                                     hover:text-white 
@@ -574,7 +606,7 @@ export function EvolucaoPacientesPage({ user, onBack, setSnackbar }: EvolucaoPac
                                     cursor-pointer
                                   "
                         >
-                          <ArrowRight className="w-5 h-5" />
+                          <ArrowRight className="w-4 h-4" />
                         </button>
                       </td>
 
