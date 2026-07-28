@@ -18,7 +18,6 @@ import { getAtendimentos, getQtdPacientes } from "@/app/services/api";
 
 import Laudos from "./Laudos";
 import { EvolucaoPacientesPage } from "./EvolucaoPacientesPage";
-import ControlePTS from "./ControlePTS";
 
 import { HistoricoAtendimentos } from "./HistoricoAtendimentos";
 import { User } from "../../interfaces/interfaces";
@@ -269,16 +268,7 @@ export function ProfessionalDashboard({
             />
           }
         />
-{/*         <Route
-          path="ControlePTS"
-          element={
-            <ControlePTS
-              user={user}
-              onBack={() => navigate("/ProfissionalDashboard")}
-              setSnackbar={setSnackbar}
-            />
-          }
-        /> */}
+
         <Route
           path="EvolucaoPaciente"
           element={
