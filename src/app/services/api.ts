@@ -109,18 +109,40 @@ export interface ControlePTSRegistro {
   profissionalNome: string;
   especialidade?: string;
   registroProfissional?: string | null;
+  anoReferencia: number;
   statusProfPts: boolean | number;
 }
 
-export const getControlePTS = async (): Promise<ControlePTSRegistro[]> => {
+export const getControlePTS = async (anoReferencia?: number): Promise<ControlePTSRegistro[]> => {
   try {
-    const response = await fetch(`${API_BASE_URL}/profissionais/status-pts`);
+    const params = new URLSearchParams();
+    if (anoReferencia) params.append("ano_referencia", String(anoReferencia));
+
+    const queryString = params.toString();
+    const response = await fetch(
+      `${API_BASE_URL}/profissionais/status-pts${queryString ? `?${queryString}` : ""}`
+    );
     if (!response.ok) throw new Error("Erro ao buscar status PTS dos profissionais");
     return await response.json();
   } catch (error) {
     console.error("Erro ao buscar status PTS dos profissionais:", error);
     return [];
   }
+};
+
+export const iniciarNovoCicloPTS = async (anoReferencia: number) => {
+  const response = await fetch(`${API_BASE_URL}/registros-pts/ciclos`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ ano_referencia: anoReferencia }),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || "Erro ao iniciar novo ciclo PTS");
+  }
+
+  return await response.json();
 };
 
 export interface RelatorioPTSData {
@@ -315,6 +337,7 @@ export interface RegistroEvolucao {
   id?: number;
   pacienteId: number;
   profissionalId: number;
+  anoReferencia?: number;
   historicoClinico?: string | null;
   objetivosTratamento?: string | null;
   tecnicasProcedimentos?: string | null;

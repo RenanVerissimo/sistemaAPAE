@@ -2,9 +2,9 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/app/components/ui/button";
 import { Card } from "@mui/material";
-import { ControlePTSRegistro, getControlePTS, getRelatorioPTS } from "@/app/services/api";
+import { ControlePTSRegistro, getControlePTS, getRelatorioPTS, iniciarNovoCicloPTS } from "@/app/services/api";
 import { generateAlunoRelatorioPDF } from "@/utils/generateAlunoRelatorioPDF";
-import { CheckCircle2, ChevronLeft, Clock, Download, XCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle2, ChevronLeft, Clock, Download, XCircle } from "lucide-react";
 
 type FiltroStatus = "todos" | "concluido" | "parcial" | "pendente";
 const PACIENTES_POR_PAGINA = 10;
@@ -60,12 +60,19 @@ export default function ControlePTS() {
   const [carregando, setCarregando] = useState(true);
   const [baixandoRelatorio, setBaixandoRelatorio] = useState<string | null>(null);
   const [erroRelatorio, setErroRelatorio] = useState<string | null>(null);
+  const [anoReferencia, setAnoReferencia] = useState(new Date().getFullYear());
+  const [modalNovoCiclo, setModalNovoCiclo] = useState(false);
+  const [iniciandoCiclo, setIniciandoCiclo] = useState(false);
+  const [mensagemCiclo, setMensagemCiclo] = useState<string | null>(null);
+  const anoAtual = new Date().getFullYear();
+  const proximoAnoReferencia = anoReferencia + 1;
+  const podeIniciarNovoCiclo = anoReferencia === anoAtual;
 
   useEffect(() => {
     const carregarStatus = async () => {
       setCarregando(true);
       try {
-        const data = await getControlePTS();
+        const data = await getControlePTS(anoReferencia);
         setRegistrosPTS(data);
       } finally {
         setCarregando(false);
@@ -73,7 +80,7 @@ export default function ControlePTS() {
     };
 
     carregarStatus();
-  }, []);
+  }, [anoReferencia]);
 
   const pacientesAgrupadosTodos = useMemo(() => {
     const grupos = new Map<number, PacienteComControlePTS>();
@@ -150,25 +157,68 @@ export default function ControlePTS() {
     }
   };
 
+  const confirmarNovoCiclo = async () => {
+    setIniciandoCiclo(true);
+    setMensagemCiclo(null);
+
+    try {
+      await iniciarNovoCicloPTS(proximoAnoReferencia);
+      setAnoReferencia(proximoAnoReferencia);
+      setFiltro("todos");
+      setBuscaPaciente("");
+      setBuscaProfissional("");
+      setPaginaAtual(1);
+      setModalNovoCiclo(false);
+      setMensagemCiclo(`Ciclo PTS ${proximoAnoReferencia} iniciado com sucesso.`);
+    } catch (error) {
+      setMensagemCiclo(
+        error instanceof Error ? error.message : "Nao foi possivel iniciar o novo ciclo PTS."
+      );
+    } finally {
+      setIniciandoCiclo(false);
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-4 space-y-4">
-      <div className="flex items-center gap-2">
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => navigate("/SecretariaDashboard/ProfissionalCard")}
-          title="Voltar"
-        >
-          <ChevronLeft className="w-5 h-5" />
-        </Button>
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => navigate("/SecretariaDashboard/ProfissionalCard")}
+            title="Voltar"
+          >
+            <ChevronLeft className="w-5 h-5" />
+          </Button>
 
-        <div>
-          <h2 className="text-lg font-semibold"> Controle de PTS dos Profissionais</h2>
-          <p className="text-sm text-gray-500">
-            Controle de PTS por paciente e profissional responsável.
-          </p>
+          <div>
+            <h2 className="text-lg font-semibold"> Controle de PTS dos Profissionais</h2>
+            <p className="text-sm text-gray-500">
+              Controle de PTS por paciente e profissional responsável. Ciclo {anoReferencia}.
+            </p>
+          </div>
         </div>
+
+        {podeIniciarNovoCiclo && (
+          <Button
+            type="button"
+            className="bg-blue-700 text-white hover:bg-blue-800"
+            onClick={() => {
+              setMensagemCiclo(null);
+              setModalNovoCiclo(true);
+            }}
+          >
+            Iniciar novo ciclo PTS
+          </Button>
+        )}
       </div>
+
+      {mensagemCiclo && (
+        <div className="rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-800">
+          {mensagemCiclo}
+        </div>
+      )}
 
       <div className="flex max-w-full flex-col gap-3 rounded-lg border border-gray-300 bg-white px-3 py-3 shadow-sm">
         <span className="inline-flex w-fit rounded-md bg-blue-700 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-white">
@@ -281,11 +331,10 @@ export default function ControlePTS() {
                           return (
                             <div
                               key={`${paciente.pacienteId}-${profissional.profissionalId}`}
-                              className={`flex min-h-[78px] items-start gap-2 rounded-md border px-3 py-2 ${
-                                finalizado
+                              className={`flex min-h-[78px] items-start gap-2 rounded-md border px-3 py-2 ${finalizado
                                   ? "border-green-200 bg-green-50"
                                   : "border-red-200 bg-red-50"
-                              }`}
+                                }`}
                             >
                               <div className="min-w-0 flex-1 space-y-1">
                                 <div className="flex flex-wrap items-center gap-2">
@@ -310,11 +359,10 @@ export default function ControlePTS() {
                                 </div>
                                 <div className="flex items-center justify-between gap-2">
                                   <span
-                                    className={`inline-flex rounded-md border px-2 py-0.5 text-xs font-bold ${
-                                      finalizado
+                                    className={`inline-flex rounded-md border px-2 py-0.5 text-xs font-bold ${finalizado
                                         ? "border-green-300 bg-green-100 text-green-800"
                                         : "border-red-300 bg-red-100 text-red-800"
-                                    }`}
+                                      }`}
                                   >
                                     {finalizado ? "Concluido" : "Pendente"}
                                   </span>
@@ -379,6 +427,50 @@ export default function ControlePTS() {
             >
               Proxima
             </Button>
+          </div>
+        </div>
+      )}
+
+      {modalNovoCiclo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-lg rounded-lg bg-white p-6 shadow-xl">
+            <div className="mb-4 flex flex-col items-center rounded-md border border-amber-200 bg-amber-50 p-4 text-center text-amber-900">
+              <div className="flex items-center justify-center gap-3">
+                <AlertTriangle className="h-6 w-6 shrink-0 text-amber-700" />
+                <h3 className="text-lg font-semibold">Iniciar novo ciclo PTS?</h3>
+              </div>
+              <div className="w-full max-w-md">
+                <p className="mt-3 rounded-md border border-amber-200 bg-white/80 px-3 py-2 text-center text-sm font-bold leading-relaxed text-amber-950 shadow-sm">
+                  Ao confirmar, o ciclo {proximoAnoReferencia} será iniciado.
+                  {/* Esta ação criará o ciclo PTS {proximoAnoReferencia} como pendente para os pacientes ativos e profissionais cadastrados. */}
+                </p>
+                <p className="mt-2 rounded-md border border-amber-200 bg-white/80 px-3 py-2 text-center text-sm font-bold leading-relaxed text-amber-950 shadow-sm">Os relatórios realizados pelos profissionais do ano {anoReferencia} serão preservados.</p>
+              </div>
+            </div>
+
+            <div className="space-y-2 rounded-md border border-blue-300 bg-blue-50 px-4 py-3 text-sm text-blue-950 shadow-sm">
+              <p className="font-bold leading-relaxed">Esta ação criará o ciclo PTS {proximoAnoReferencia} como pendente para os pacientes ativos e profissionais cadastrados.  </p>
+
+            </div>
+
+            <div className="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setModalNovoCiclo(false)}
+                disabled={iniciandoCiclo}
+              >
+                Cancelar
+              </Button>
+              <Button
+                type="button"
+                className="bg-blue-700 text-white hover:bg-blue-800"
+                onClick={confirmarNovoCiclo}
+                disabled={iniciandoCiclo}
+              >
+                {iniciandoCiclo ? "Iniciando..." : `Sim, iniciar ciclo ${proximoAnoReferencia}`}
+              </Button>
+            </div>
           </div>
         </div>
       )}

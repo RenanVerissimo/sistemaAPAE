@@ -61,9 +61,10 @@ async function garantirTabelaRegistrosPTS() {
       evolucao_paciente TEXT NULL,
       recomendacoes_finais TEXT NULL,
       status_prof_pts TINYINT(1) NOT NULL DEFAULT 0,
+      ano_referencia INT NOT NULL,
       created_at DATETIME NULL,
       updated_at DATETIME NULL,
-      UNIQUE KEY uk_registros_pts_paciente_profissional (paciente_id, profissional_id),
+      UNIQUE KEY uk_registros_pts_paciente_profissional_ano (paciente_id, profissional_id, ano_referencia),
       INDEX idx_registros_pts_paciente_id (paciente_id),
       INDEX idx_registros_pts_profissional_id (profissional_id)
     )
@@ -78,6 +79,13 @@ async function garantirTabelaRegistrosPTS() {
     );
   }
 
+  if (!columnNames.has("ano_referencia")) {
+    await db.query("ALTER TABLE registros_pts ADD COLUMN ano_referencia INT NULL AFTER status_prof_pts");
+  }
+
+  await db.query("UPDATE registros_pts SET ano_referencia = YEAR(CURDATE()) WHERE ano_referencia IS NULL");
+  await db.query("ALTER TABLE registros_pts MODIFY ano_referencia INT NOT NULL");
+
   if (columnNames.has("created_at")) {
     await db.query("ALTER TABLE registros_pts MODIFY created_at DATETIME NULL");
   } else {
@@ -88,6 +96,25 @@ async function garantirTabelaRegistrosPTS() {
     await db.query("ALTER TABLE registros_pts MODIFY updated_at DATETIME NULL");
   } else {
     await db.query("ALTER TABLE registros_pts ADD COLUMN updated_at DATETIME NULL");
+  }
+
+  const [indexes]: any = await db.query("SHOW INDEX FROM registros_pts");
+  const indexNames = new Set(indexes.map((index: any) => index.Key_name));
+
+  if (indexNames.has("uk_registros_pts_paciente_profissional")) {
+    await db.query("ALTER TABLE registros_pts DROP INDEX uk_registros_pts_paciente_profissional");
+  }
+
+  if (indexNames.has("uk_registros_evolucao_paciente_profissional")) {
+    await db.query("ALTER TABLE registros_pts DROP INDEX uk_registros_evolucao_paciente_profissional");
+  }
+
+  if (!indexNames.has("uk_registros_pts_paciente_profissional_ano")) {
+    await db.query(
+      `ALTER TABLE registros_pts
+       ADD UNIQUE KEY uk_registros_pts_paciente_profissional_ano
+       (paciente_id, profissional_id, ano_referencia)`
+    );
   }
 }
 
@@ -258,6 +285,8 @@ app.get("/profissionais/qtd", async (req: Request, res: Response) => {
 
 app.get("/profissionais/status-pts", async (req: Request, res: Response) => {
   try {
+    const anoReferencia = Number(req.query.ano_referencia) || new Date().getFullYear();
+
     const [rows] = await db.query(`
       SELECT
         pac.id AS pacienteId,
@@ -266,16 +295,18 @@ app.get("/profissionais/status-pts", async (req: Request, res: Response) => {
         p.nome AS profissionalNome,
         p.especialidade,
         p.registroProfissional,
+        ? AS anoReferencia,
         COALESCE(r.status_prof_pts, 0) AS statusProfPts
       FROM pacientes pac
       CROSS JOIN profissionais p
       LEFT JOIN registros_pts r
         ON r.paciente_id = pac.id
        AND r.profissional_id = p.id
+       AND r.ano_referencia = ?
       WHERE p.rolee <> 'SECRETARIA'
         AND COALESCE(pac.status, 'Ativo') = 'Ativo'
       ORDER BY pac.nome ASC, p.nome ASC
-    `);
+    `, [anoReferencia, anoReferencia]);
 
     res.json(rows);
   } catch (error) {
@@ -573,10 +604,11 @@ app.get("/registros-evolucao/:pacienteId", async (req: Request, res: Response) =
          tecnicas_procedimentos AS tecnicasProcedimentos,
          evolucao_paciente AS evolucaoPaciente,
          recomendacoes_finais AS recomendacoesFinais,
+         ano_referencia AS anoReferencia,
          created_at AS createdAt,
          updated_at AS updatedAt
        FROM registros_pts
-       WHERE paciente_id = ? AND profissional_id = ?
+       WHERE paciente_id = ? AND profissional_id = ? AND ano_referencia = YEAR(CURDATE())
        LIMIT 1`,
       [pacienteId, profissionalId]
     );
@@ -616,12 +648,14 @@ app.get("/registros-pts/:pacienteId/:profissionalId/relatorio", async (req: Requ
          r.tecnicas_procedimentos AS tecnicasProcedimentos,
          r.evolucao_paciente AS evolucaoPaciente,
          r.recomendacoes_finais AS recomendacoesFinais,
+         r.ano_referencia AS anoReferencia,
          r.status_prof_pts AS statusProfPts
        FROM registros_pts r
        INNER JOIN pacientes pac ON pac.id = r.paciente_id
        INNER JOIN profissionais prof ON prof.id = r.profissional_id
        WHERE r.paciente_id = ?
          AND r.profissional_id = ?
+         AND r.ano_referencia = YEAR(CURDATE())
          AND r.status_prof_pts = 1
        LIMIT 1`,
       [pacienteId, profissionalId]
@@ -664,6 +698,51 @@ app.get("/registros-pts/:pacienteId/:profissionalId/relatorio", async (req: Requ
   }
 });
 
+app.post("/registros-pts/ciclos", async (req: Request, res: Response) => {
+  try {
+    const anoReferencia = Number(req.body?.ano_referencia);
+    const proximoAno = new Date().getFullYear() + 1;
+
+    if (!anoReferencia || anoReferencia !== proximoAno) {
+      return res.status(400).json({ message: "ano_referencia invalido" });
+    }
+
+    const [result]: any = await db.query(
+      `INSERT INTO registros_pts (
+         paciente_id,
+         profissional_id,
+         status_prof_pts,
+         ano_referencia,
+         created_at,
+         updated_at
+       )
+       SELECT
+         pac.id,
+         prof.id,
+         0,
+         ?,
+         DATE_SUB(UTC_TIMESTAMP(), INTERVAL 3 HOUR),
+         DATE_SUB(UTC_TIMESTAMP(), INTERVAL 3 HOUR)
+       FROM pacientes pac
+       CROSS JOIN profissionais prof
+       WHERE prof.rolee <> 'SECRETARIA'
+         AND COALESCE(pac.status, 'Ativo') = 'Ativo'
+       ON DUPLICATE KEY UPDATE
+         status_prof_pts = status_prof_pts`,
+      [anoReferencia]
+    );
+
+    res.status(201).json({
+      message: "Ciclo PTS iniciado com sucesso",
+      anoReferencia,
+      registrosCriados: result.affectedRows ?? 0,
+    });
+  } catch (error) {
+    console.error("Erro ao iniciar ciclo PTS:", error);
+    res.status(500).json({ message: "Erro interno do servidor" });
+  }
+});
+
 app.put("/registros-evolucao/:pacienteId", async (req: Request, res: Response) => {
   try {
     const pacienteId = Number(req.params.pacienteId);
@@ -701,10 +780,11 @@ app.put("/registros-evolucao/:pacienteId", async (req: Request, res: Response) =
          evolucao_paciente,
          recomendacoes_finais,
          status_prof_pts,
+         ano_referencia,
          created_at,
          updated_at
        )
-       VALUES (?, ?, ?, ?, ?, ?, ?, 1, DATE_SUB(UTC_TIMESTAMP(), INTERVAL 3 HOUR), DATE_SUB(UTC_TIMESTAMP(), INTERVAL 3 HOUR))
+       VALUES (?, ?, ?, ?, ?, ?, ?, 1, YEAR(CURDATE()), DATE_SUB(UTC_TIMESTAMP(), INTERVAL 3 HOUR), DATE_SUB(UTC_TIMESTAMP(), INTERVAL 3 HOUR))
        ON DUPLICATE KEY UPDATE
          historico_clinico = VALUES(historico_clinico),
          objetivos_tratamento = VALUES(objetivos_tratamento),
