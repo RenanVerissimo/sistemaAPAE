@@ -2,24 +2,24 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/app/components/ui/button";
 import { Card } from "@mui/material";
-import { getRelatorioPTS, getStatusProfissionaisPTS, StatusProfissionalPTS } from "@/app/services/api";
+import { ControlePTSRegistro, getControlePTS, getRelatorioPTS } from "@/app/services/api";
 import { generateAlunoRelatorioPDF } from "@/utils/generateAlunoRelatorioPDF";
 import { CheckCircle2, ChevronLeft, Clock, Download, XCircle } from "lucide-react";
 
 type FiltroStatus = "todos" | "concluido" | "parcial" | "pendente";
 const PACIENTES_POR_PAGINA = 10;
 
-interface PacienteComStatusPTS {
+interface PacienteComControlePTS {
   pacienteId: number;
   pacienteNome: string;
-  profissionais: StatusProfissionalPTS[];
+  profissionais: ControlePTSRegistro[];
 }
 
-function statusFinalizado(status: StatusProfissionalPTS["statusProfPts"]) {
+function statusFinalizado(status: ControlePTSRegistro["statusProfPts"]) {
   return Number(status) === 1;
 }
 
-function getStatusPaciente(profissionais: StatusProfissionalPTS[]): Exclude<FiltroStatus, "todos"> {
+function getStatusPaciente(profissionais: ControlePTSRegistro[]): Exclude<FiltroStatus, "todos"> {
   const totalConcluidos = profissionais.filter((prof) => statusFinalizado(prof.statusProfPts)).length;
 
   if (totalConcluidos === profissionais.length) return "concluido";
@@ -50,9 +50,9 @@ function getEspecialidadeBadgeColor(especialidade?: string) {
   }
 }
 
-export default function StatusProfissionaisPTS() {
+export default function ControlePTS() {
   const navigate = useNavigate();
-  const [registrosPTS, setRegistrosPTS] = useState<StatusProfissionalPTS[]>([]);
+  const [registrosPTS, setRegistrosPTS] = useState<ControlePTSRegistro[]>([]);
   const [filtro, setFiltro] = useState<FiltroStatus>("todos");
   const [buscaPaciente, setBuscaPaciente] = useState("");
   const [buscaProfissional, setBuscaProfissional] = useState("");
@@ -65,7 +65,7 @@ export default function StatusProfissionaisPTS() {
     const carregarStatus = async () => {
       setCarregando(true);
       try {
-        const data = await getStatusProfissionaisPTS();
+        const data = await getControlePTS();
         setRegistrosPTS(data);
       } finally {
         setCarregando(false);
@@ -76,7 +76,7 @@ export default function StatusProfissionaisPTS() {
   }, []);
 
   const pacientesAgrupadosTodos = useMemo(() => {
-    const grupos = new Map<number, PacienteComStatusPTS>();
+    const grupos = new Map<number, PacienteComControlePTS>();
 
     registrosPTS.forEach((registro) => {
       const grupoExistente = grupos.get(registro.pacienteId);

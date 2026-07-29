@@ -6,7 +6,7 @@ import { Input } from '@/app/components/ui/input';
 import { ArrowLeft, ArrowRight, CheckCircle2, FileDown, Save, Search as SearchIcon, XCircle } from 'lucide-react';
 import { Badge } from "@/app/components/ui/badge";
 import { generateAlunoRelatorioPDF } from "@/utils/generateAlunoRelatorioPDF";
-import { getAllPacientes, getRegistroEvolucao, getStatusProfissionaisPTS, salvarRegistroEvolucao } from "@/app/services/api";
+import { getAllPacientes, getRegistroEvolucao, getControlePTS, salvarRegistroEvolucao } from "@/app/services/api";
 import { User, Paciente } from '../../interfaces/interfaces';
 
 interface SnackbarState {
@@ -64,7 +64,7 @@ export function EvolucaoPacientesPage({ user, onBack, setSnackbar }: EvolucaoPac
       if (!profissionalId) return;
 
       try {
-        const status = await getStatusProfissionaisPTS();
+        const status = await getControlePTS();
         const statusDoProfissional = status.reduce<Record<number, boolean>>((mapa, registro) => {
           if (Number(registro.profissionalId) === profissionalId) {
             mapa[registro.pacienteId] =

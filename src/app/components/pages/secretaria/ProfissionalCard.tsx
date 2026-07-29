@@ -285,7 +285,7 @@ export default function ProfissionalCard() {
                 <div className="flex flex-wrap gap-2">
                     <Button
                         className="bg-emerald-600 hover:bg-emerald-700 text-white"
-                        onClick={() => navigate("/SecretariaDashboard/ProfissionalCard/StatusPTS")}
+                        onClick={() => navigate("/SecretariaDashboard/ProfissionalCard/ControlePTS")}
                     >
                         <ClipboardCheck className="w-4 h-4 mr-2" />
                         Controle PTS

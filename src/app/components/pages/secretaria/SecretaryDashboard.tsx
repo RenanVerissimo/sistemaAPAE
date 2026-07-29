@@ -11,7 +11,7 @@ import { CadastroPacientes } from "./CadastroPacientes";
 import { VerAtendimentos } from "./VerAtendimentos";
 import { AtendimentoEspecifico } from "./AtendimentoEspecifico";
 import SnackbarComponent from "../../SnackbarComponent";
-import StatusProfissionaisPTS from "./StatusProfissionaisPTS";
+import ControlePTS from "./ControlePTS";
 
 
 
@@ -213,7 +213,7 @@ export function SecretaryDashboard({
         <Route path="PacienteCard/VerAtendimentos" element={<VerAtendimentos />} />
         <Route path="PacienteCard/VerAtendimentos/AtendimentoEspecifico" element={<AtendimentoEspecifico />} />
         <Route path="ProfissionalCard/VerAtendimentos" element={<VerAtendimentos />} />
-        <Route path="ProfissionalCard/StatusPTS" element={<StatusProfissionaisPTS />} />
+        <Route path="ProfissionalCard/ControlePTS" element={<ControlePTS />} />
 
       </Routes>
 

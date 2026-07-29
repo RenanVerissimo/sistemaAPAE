@@ -102,7 +102,7 @@ export const getQtdProfissionais = async (): Promise<number> => {
   }
 };
 
-export interface StatusProfissionalPTS {
+export interface ControlePTSRegistro {
   pacienteId: number;
   pacienteNome: string;
   profissionalId: number;
@@ -112,7 +112,7 @@ export interface StatusProfissionalPTS {
   statusProfPts: boolean | number;
 }
 
-export const getStatusProfissionaisPTS = async (): Promise<StatusProfissionalPTS[]> => {
+export const getControlePTS = async (): Promise<ControlePTSRegistro[]> => {
   try {
     const response = await fetch(`${API_BASE_URL}/profissionais/status-pts`);
     if (!response.ok) throw new Error("Erro ao buscar status PTS dos profissionais");
