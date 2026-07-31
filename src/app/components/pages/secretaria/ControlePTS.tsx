@@ -2,8 +2,14 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/app/components/ui/button";
 import { Card } from "@mui/material";
-import { ControlePTSRegistro, getControlePTS, getRelatorioPTS, iniciarNovoCicloPTS } from "@/app/services/api";
-import { generateAlunoRelatorioPDF } from "@/utils/generateAlunoRelatorioPDF";
+import {
+  ControlePTSRegistro,
+  RelatorioPTSData,
+  getControlePTS,
+  getRelatorioPTS,
+  iniciarNovoCicloPTS,
+} from "@/app/services/api";
+import { generateAlunoRelatorioPDF, generateAlunoRelatoriosPDF } from "@/utils/generateAlunoRelatorioPDF";
 import { AlertTriangle, CheckCircle2, ChevronLeft, Clock, Download, XCircle } from "lucide-react";
 
 type FiltroStatus = "todos" | "concluido" | "parcial" | "pendente";
@@ -27,6 +33,10 @@ function getStatusPaciente(profissionais: ControlePTSRegistro[]): Exclude<Filtro
   return "pendente";
 }
 
+function contarRelatoriosConcluidos(profissionais: ControlePTSRegistro[]) {
+  return profissionais.filter((profissional) => statusFinalizado(profissional.statusProfPts)).length;
+}
+
 function getEspecialidadeBadgeColor(especialidade?: string) {
   if (!especialidade) return "bg-gray-100 text-gray-800";
 
@@ -48,6 +58,15 @@ function getEspecialidadeBadgeColor(especialidade?: string) {
     default:
       return "bg-gray-100 text-gray-800";
   }
+}
+
+function formatarNomeArquivo(valor?: string) {
+  return (valor || "sem_nome")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-zA-Z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "")
+    .toLowerCase();
 }
 
 export default function ControlePTS() {
@@ -146,11 +165,54 @@ export default function ControlePTS() {
 
     try {
       const relatorio = await getRelatorioPTS(pacienteId, profissionalId);
-      generateAlunoRelatorioPDF(relatorio);
+      const dataFormatada = new Date().toISOString().split("T")[0];
+      generateAlunoRelatorioPDF({
+        ...relatorio,
+        nomeArquivo: `relatorio_pts_${formatarNomeArquivo(relatorio.aluno?.nome)}_${formatarNomeArquivo(
+          relatorio.profissional?.nome
+        )}_${dataFormatada}.pdf`,
+      });
     } catch (error) {
       console.error("Erro ao baixar relatorio PTS:", error);
       setErroRelatorio(
         error instanceof Error ? error.message : "Nao foi possivel baixar o relatorio PTS."
+      );
+    } finally {
+      setBaixandoRelatorio(null);
+    }
+  };
+
+  const baixarRelatoriosPaciente = async (paciente: PacienteComControlePTS) => {
+    const profissionaisConcluidos = paciente.profissionais.filter((profissional) =>
+      statusFinalizado(profissional.statusProfPts)
+    );
+
+    if (profissionaisConcluidos.length === 0) {
+      setErroRelatorio("Este paciente ainda nao possui relatorios PTS concluidos para download.");
+      return;
+    }
+
+    const downloadKey = `paciente-${paciente.pacienteId}`;
+    setBaixandoRelatorio(downloadKey);
+    setErroRelatorio(null);
+
+    try {
+      const dataFormatada = new Date().toISOString().split("T")[0];
+      const relatorios: RelatorioPTSData[] = [];
+
+      for (const profissional of profissionaisConcluidos) {
+        const relatorio = await getRelatorioPTS(paciente.pacienteId, profissional.profissionalId);
+        relatorios.push(relatorio);
+      }
+
+      generateAlunoRelatoriosPDF(
+        relatorios,
+        `relatorios_pts_${formatarNomeArquivo(paciente.pacienteNome)}_${dataFormatada}.pdf`
+      );
+    } catch (error) {
+      console.error("Erro ao baixar relatorios PTS do paciente:", error);
+      setErroRelatorio(
+        error instanceof Error ? error.message : "Nao foi possivel baixar todos os relatorios PTS."
       );
     } finally {
       setBaixandoRelatorio(null);
@@ -293,17 +355,18 @@ export default function ControlePTS() {
 
       <Card className="rounded-xl overflow-hidden shadow-md border border-gray-200">
         <div className="w-full overflow-x-auto">
-          <table className="w-full min-w-[860px] table-fixed text-sm">
+          <table className="w-full min-w-[820px] table-fixed text-sm">
             <thead className="bg-gray-300 border-b">
               <tr>
-                <th className="w-[28%] px-3 py-2 text-left font-semibold">Paciente</th>
-                <th className="w-[72%] px-3 py-2 text-left font-semibold">Status PTS por profissional</th>
+                <th className="w-[24%] px-3 py-2 text-left font-semibold">Paciente</th>
+                <th className="w-[68%] px-3 py-2 text-left font-semibold">Status PTS por profissional</th>
+                <th className="w-[8%] px-2 py-2 text-center font-semibold">PDF</th>
               </tr>
             </thead>
             <tbody>
               {carregando && (
                 <tr>
-                  <td colSpan={2} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={3} className="px-4 py-8 text-center text-gray-500">
                     Carregando status dos PTS...
                   </td>
                 </tr>
@@ -311,91 +374,123 @@ export default function ControlePTS() {
 
               {!carregando && pacientesAgrupados.length === 0 && (
                 <tr>
-                  <td colSpan={2} className="px-4 py-8 text-center text-gray-500">
+                  <td colSpan={3} className="px-4 py-8 text-center text-gray-500">
                     Nenhum PTS encontrado para este filtro.
                   </td>
                 </tr>
               )}
 
               {!carregando &&
-                pacientesPaginados.map((paciente) => (
-                  <tr key={paciente.pacienteId} className="border-b hover:bg-gray-100 align-top">
-                    <td className="px-3 py-3 text-left font-semibold text-gray-800 break-words">
-                      {paciente.pacienteNome}
-                    </td>
-                    <td className="px-3 py-3">
-                      <div className="grid gap-2 sm:grid-cols-2 xl:grid-cols-3">
-                        {paciente.profissionais.map((profissional) => {
-                          const finalizado = statusFinalizado(profissional.statusProfPts);
+                pacientesPaginados.map((paciente) => {
+                  const totalRelatoriosConcluidos = contarRelatoriosConcluidos(paciente.profissionais);
+                  const possuiRelatorioConcluido = totalRelatoriosConcluidos > 0;
+                  const baixandoPaciente = baixandoRelatorio === `paciente-${paciente.pacienteId}`;
+                  const textoRelatorio =
+                    totalRelatoriosConcluidos === 1 ? "1 relatorio PTS" : `${totalRelatoriosConcluidos} relatorios PTS`;
 
-                          return (
-                            <div
-                              key={`${paciente.pacienteId}-${profissional.profissionalId}`}
-                              className={`flex min-h-[78px] items-start gap-2 rounded-md border px-3 py-2 ${finalizado
-                                  ? "border-green-200 bg-green-50"
-                                  : "border-red-200 bg-red-50"
-                                }`}
-                            >
-                              <div className="min-w-0 flex-1 space-y-1">
-                                <div className="flex flex-wrap items-center gap-2">
-                                  {finalizado ? (
-                                    <CheckCircle2 className="h-4 w-4 shrink-0 text-green-700" />
-                                  ) : (
-                                    <XCircle className="h-4 w-4 shrink-0 text-red-700" />
-                                  )}
-                                  <span className="font-medium text-gray-800 break-words">
-                                    {profissional.profissionalNome}
-                                  </span>
-                                  <span
-                                    className={`rounded-md px-2 py-0.5 text-[11px] font-medium ${getEspecialidadeBadgeColor(
-                                      profissional.especialidade
-                                    )}`}
-                                  >
-                                    {profissional.especialidade || "-"}
-                                  </span>
-                                </div>
-                                <div className="text-xs text-gray-600">
-                                  <span>{profissional.registroProfissional || "Sem registro"}</span>
-                                </div>
-                                <div className="flex items-center justify-between gap-2">
-                                  <span
-                                    className={`inline-flex rounded-md border px-2 py-0.5 text-xs font-bold ${finalizado
-                                        ? "border-green-300 bg-green-100 text-green-800"
-                                        : "border-red-300 bg-red-100 text-red-800"
-                                      }`}
-                                  >
-                                    {finalizado ? "Concluido" : "Pendente"}
-                                  </span>
-                                  {finalizado && (
-                                    <Button
-                                      type="button"
-                                      size="sm"
-                                      variant="outline"
-                                      className="h-8 w-8 border-green-300 bg-white p-0 text-green-700 hover:bg-green-100"
-                                      disabled={
-                                        baixandoRelatorio ===
-                                        `${paciente.pacienteId}-${profissional.profissionalId}`
-                                      }
-                                      onClick={() =>
-                                        baixarRelatorioPTS(
-                                          paciente.pacienteId,
-                                          profissional.profissionalId
-                                        )
-                                      }
-                                      title="Baixar relatorio PTS"
+                  return (
+                    <tr key={paciente.pacienteId} className="border-b hover:bg-gray-100 align-top">
+                      <td className="px-3 py-2 text-left font-semibold text-gray-800 break-words">
+                        {paciente.pacienteNome}
+                      </td>
+                      <td className="px-3 py-2">
+                        <div className="grid gap-1.5 sm:grid-cols-2 xl:grid-cols-3">
+                          {paciente.profissionais.map((profissional) => {
+                            const finalizado = statusFinalizado(profissional.statusProfPts);
+
+                            return (
+                              <div
+                                key={`${paciente.pacienteId}-${profissional.profissionalId}`}
+                                className={`flex items-start gap-2 rounded-md border px-2 py-1.5 ${finalizado
+                                    ? "border-green-200 bg-green-50"
+                                    : "border-red-200 bg-red-50"
+                                  }`}
+                              >
+                                {finalizado ? (
+                                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-green-700" />
+                                ) : (
+                                  <XCircle className="mt-0.5 h-4 w-4 shrink-0 text-red-700" />
+                                )}
+
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex items-start justify-between gap-2">
+                                    <span className="text-xs font-semibold leading-snug text-gray-800 break-words">
+                                      {profissional.profissionalNome}
+                                    </span>
+                                    <span
+                                      className={`shrink-0 rounded-md border px-1.5 py-0.5 text-[10px] font-bold leading-none ${finalizado
+                                          ? "border-green-300 bg-green-100 text-green-800"
+                                          : "border-red-300 bg-red-100 text-red-800"
+                                        }`}
                                     >
-                                      <Download className="h-4 w-4" />
-                                    </Button>
-                                  )}
+                                      {finalizado ? "Concluído" : "Pendente"}
+                                    </span>
+                                  </div>
+
+                                  <div className="mt-1 flex flex-wrap items-center gap-1.5 text-[11px] leading-tight text-gray-600">
+                                    <span
+                                      className={`rounded px-1.5 py-0.5 font-medium ${getEspecialidadeBadgeColor(
+                                        profissional.especialidade
+                                      )}`}
+                                    >
+                                      {profissional.especialidade || "-"}
+                                    </span>
+                                    <span className="truncate">{profissional.registroProfissional || "Sem registro"}</span>
+                                  </div>
                                 </div>
+
+                                {finalizado && (
+                                  <Button
+                                    type="button"
+                                    size="sm"
+                                    variant="outline"
+                                    className="h-7 w-7 shrink-0 border-green-300 bg-white p-0 text-green-700 hover:bg-green-100"
+                                    disabled={
+                                      baixandoRelatorio ===
+                                      `${paciente.pacienteId}-${profissional.profissionalId}`
+                                    }
+                                    onClick={() =>
+                                      baixarRelatorioPTS(
+                                        paciente.pacienteId,
+                                        profissional.profissionalId
+                                      )
+                                    }
+                                    title="Baixar relatorio PTS deste profissional"
+                                  >
+                                    <Download className="h-3.5 w-3.5" />
+                                  </Button>
+                                )}
                               </div>
-                            </div>
-                          );
-                        })}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                            );
+                          })}
+                        </div>
+                      </td>
+                      <td className="px-2 py-2 text-center align-middle">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className={`mx-auto h-9 min-w-9 rounded-md px-2 transition-colors ${possuiRelatorioConcluido
+                              ? "border-blue-300 bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800"
+                              : "border-gray-200 bg-gray-50 text-gray-300"
+                            }`}
+                          disabled={!possuiRelatorioConcluido || baixandoPaciente}
+                          onClick={() => baixarRelatoriosPaciente(paciente)}
+                          title={
+                            possuiRelatorioConcluido
+                              ? `Baixar ${textoRelatorio} concluido${totalRelatoriosConcluidos === 1 ? "" : "s"} deste paciente`
+                              : "Nenhum relatorio PTS concluido para este paciente"
+                          }
+                        >
+                          <Download className={`h-4 w-4 ${baixandoPaciente ? "animate-pulse" : ""}`} />
+                          {possuiRelatorioConcluido && (
+                            <span className="ml-1 text-xs font-bold leading-none">{totalRelatoriosConcluidos}</span>
+                          )}
+                        </Button>
+                      </td>
+                    </tr>
+                  );
+                })}
             </tbody>
           </table>
         </div>
@@ -442,7 +537,6 @@ export default function ControlePTS() {
               <div className="w-full max-w-md">
                 <p className="mt-3 rounded-md border border-amber-200 bg-white/80 px-3 py-2 text-center text-sm font-bold leading-relaxed text-amber-950 shadow-sm">
                   Ao confirmar, o ciclo {proximoAnoReferencia} será iniciado.
-                  {/* Esta ação criará o ciclo PTS {proximoAnoReferencia} como pendente para os pacientes ativos e profissionais cadastrados. */}
                 </p>
                 <p className="mt-2 rounded-md border border-amber-200 bg-white/80 px-3 py-2 text-center text-sm font-bold leading-relaxed text-amber-950 shadow-sm">Os relatórios realizados pelos profissionais do ano {anoReferencia} serão preservados.</p>
               </div>

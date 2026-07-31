@@ -14,19 +14,28 @@ interface GeneratePDFParams {
   aluno: User;
   profissional: User;
   campos: RelatorioCampos;
+  nomeArquivo?: string;
 }
 
-export function generateAlunoRelatorioPDF({
-  aluno,
-  profissional,
-  campos
-}: GeneratePDFParams) {
-  const doc = new jsPDF();
+function adicionarRelatorioAoPDF(
+  doc: jsPDF,
+  {
+    aluno,
+    profissional,
+    campos,
+  }: Omit<GeneratePDFParams, "nomeArquivo">,
+  novaPagina = false
+) {
+  if (novaPagina) {
+    doc.addPage();
+  }
+
+  let y = 15;
 
   // ===== TÍTULO =====
   doc.setFontSize(16);
   doc.setFont("helvetica", "bold");
-  doc.text("RELATÓRIO CLÍNICO DO PACIENTE", 105, 15, { align: "center" });
+  doc.text("RELATÓRIO CLÍNICO DO PACIENTE", 105, y, { align: "center" });
 
   // ===== DADOS DO ALUNO =====
   autoTable(doc, {
@@ -39,10 +48,12 @@ export function generateAlunoRelatorioPDF({
       ["Prontuário", aluno.prontuario || "000000"],
       ["CNS", aluno.cartaoSUS || "-"],
       ["Descrição", aluno.descricao || "-"],
+      ["Profissional", profissional.nome || "-"],
+      ["Especialidade", profissional.especialidade || "Profissional"],
     ],
   });
 
-  let y = (doc as any).lastAutoTable.finalY + 15;
+  y = (doc as any).lastAutoTable.finalY + 15;
 
   // Função para criar seções com espaçamento ajustado
   const section = (titulo: string, texto?: string, rows: number = 3) => {
@@ -59,7 +70,7 @@ export function generateAlunoRelatorioPDF({
 
     doc.setFont("helvetica", "normal");
     doc.setFontSize(10);
-    
+
     if (texto && texto.trim()) {
       const split = doc.splitTextToSize(texto, 180);
       doc.text(split, 14, y);
@@ -120,8 +131,29 @@ export function generateAlunoRelatorioPDF({
   doc.setFontSize(9);
   doc.setFont("helvetica", "italic");
   doc.text(`Relatório emitido em: ${dataEmissao}`, 105, y, { align: "center" });
+}
+
+export function generateAlunoRelatorioPDF({
+  aluno,
+  profissional,
+  campos,
+  nomeArquivo,
+}: GeneratePDFParams) {
+  const doc = new jsPDF();
+
+  adicionarRelatorioAoPDF(doc, { aluno, profissional, campos });
 
   // ===== DOWNLOAD =====
   const dataFormatada = new Date().toISOString().split('T')[0];
-  doc.save(`relatorio_${aluno.nome.replaceAll(" ", "_")}_${dataFormatada}.pdf`);
+  doc.save(nomeArquivo || `relatorio_${aluno.nome.replaceAll(" ", "_")}_${dataFormatada}.pdf`);
+}
+
+export function generateAlunoRelatoriosPDF(relatorios: GeneratePDFParams[], nomeArquivo: string) {
+  const doc = new jsPDF();
+
+  relatorios.forEach((relatorio, index) => {
+    adicionarRelatorioAoPDF(doc, relatorio, index > 0);
+  });
+
+  doc.save(nomeArquivo);
 }
