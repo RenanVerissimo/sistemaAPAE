@@ -348,7 +348,7 @@ export default function ControlePTS() {
               <tr>
                 <th className="w-[24%] px-3 py-2 text-left font-semibold">Paciente</th>
                 <th className="w-[68%] px-3 py-2 text-left font-semibold">Status PTS por profissional</th>
-                <th className="w-[8%] px-2 py-2 text-center font-semibold">Download PTS</th>
+                <th className="w-[8%] px-2 py-2 text-center font-semibold">Baixar PTS</th>
               </tr>
             </thead>
             <tbody>

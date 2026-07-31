@@ -192,6 +192,7 @@ export const cadastrarProfissional = async (data: {
   especialidade: string;
   outraEspecialidade?: string;
   registroProfissional?: string;
+  status?: "Ativo" | "Inativo";
   rolee: string;
 }) => {
   try {

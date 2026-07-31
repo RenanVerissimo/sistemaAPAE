@@ -6,7 +6,7 @@ import SnackbarComponent from "../../SnackbarComponent";
 import PriorityHighIcon from '@mui/icons-material/PriorityHigh';
 import { ProfessionalType, Profissional } from "../../interfaces/interfaces";
 import { useLocation, useNavigate } from 'react-router-dom';
-import { ChevronLeft, ClipboardCheck, FileText, Pencil, Trash2, UserPlus, KeyRound, Eye, EyeOff, Copy, Sparkles } from "lucide-react";
+import { ChevronLeft, ClipboardCheck, FileText, Pencil, Trash2, UserPlus, KeyRound, Eye, EyeOff, Copy, Sparkles, Power } from "lucide-react";
 import { atualizarSenhaProfissional } from "@/app/services/api";
 
 function limparTexto(t: string) {
@@ -73,7 +73,9 @@ export default function ProfissionalCard() {
 
     const [profissionalSelecionado, setProfissionalSelecionado] = useState<Profissional | null>(null);
     const [profissionalSelecionadoDel, setProfissionalSelecionadoDel] = useState<Profissional | null>(null);
+    const [profissionalAtivoInativo, setProfissionalAtivoInativo] = useState<Profissional | null>(null);
     const [deleteProf, setDeleteProf] = useState(false);
+    const [modalProfissionalAtivoInativo, setModalProfissionalAtivoInativo] = useState(false);
 
 
     const [snackbar, setSnackbar] = useState({
@@ -114,6 +116,19 @@ export default function ProfissionalCard() {
         "fisioterapeuta",
         "outro",
     ];
+
+    const getStatusBadgeColor = (status?: string) => {
+        if (!status) return "bg-gray-100 text-gray-600 border border-gray-300";
+
+        switch (status.toLowerCase()) {
+            case "ativo":
+                return "bg-green-100 text-green-800 border border-green-300";
+            case "inativo":
+                return "bg-red-100 text-red-800 border border-red-300";
+            default:
+                return "bg-gray-100 text-gray-600 border border-gray-300";
+        }
+    };
 
     const navigate = useNavigate();
     const location = useLocation();
@@ -180,6 +195,36 @@ export default function ProfissionalCard() {
             setSnackbar({
                 open: true,
                 message: "Erro ao EXCLUIR profissional.",
+                severity: "error",
+            });
+        }
+    };
+
+    const alterarStatusProfissional = async () => {
+        if (!profissionalAtivoInativo) return;
+
+        try {
+            const novoStatus =
+                profissionalAtivoInativo.status === "Ativo" ? "Inativo" : "Ativo";
+
+            await atualizarProfissional(profissionalAtivoInativo.id, {
+                ...profissionalAtivoInativo,
+                status: novoStatus,
+            });
+
+            setSnackbar({
+                open: true,
+                message: "Status do profissional atualizado com sucesso!",
+                severity: "success",
+            });
+
+            setProfissionalAtivoInativo(null);
+            setModalProfissionalAtivoInativo(false);
+            fetchProfissionais();
+        } catch (error) {
+            setSnackbar({
+                open: true,
+                message: "Erro ao atualizar status do profissional.",
                 severity: "error",
             });
         }
@@ -314,24 +359,29 @@ export default function ProfissionalCard() {
 
             <div className="max-w-7xl mx-auto px-4">
                 <Card className="rounded-xl overflow-hidden shadow-md border border-gray-200">
-                    <div className="w-full overflow-x-auto">
-                        <table className="w-full min-w-[860px] table-fixed text-sm">
+                    <div className="w-full overflow-hidden">
+                        <table className="w-full table-fixed text-sm">
                             <thead className="bg-gray-300 border-b">
                                 <tr>
-                                    <th className="w-[20%] px-3 py-2 text-center font-semibold">Nome</th>
-                                    <th className="w-[24%] px-3 py-2 text-center font-semibold">Email</th>
-                                    <th className="w-[16%] px-3 py-2 text-center font-semibold">Especialidade</th>
-                                    <th className="px-4 py-3 text-center font-semibold">Atendimentos total</th>
-                                    <th className="px-4 py-3 text-center font-semibold">Atendimentos mês</th>
-                                    <th className="px-4 py-3 text-center font-semibold">Número de Registro Profissional</th>
-                                    <th className="px-4 py-3 text-center font-semibold">Ações</th>
+                                    <th className="w-[18%] px-2 py-2 text-center font-semibold">Nome</th>
+                                    <th className="w-[20%] px-2 py-2 text-center font-semibold">Email</th>
+                                    <th className="w-[13%] px-2 py-2 text-center font-semibold">Especialidade</th>
+                                    <th className="w-[9%] px-1 py-2 text-center font-semibold">Atend. total</th>
+                                    <th className="w-[9%] px-1 py-2 text-center font-semibold">Atend. mês</th>
+                                    <th className="w-[13%] px-2 py-2 text-center font-semibold">Registro</th>
+                                    <th className="w-[8%] px-1 py-2 text-center font-semibold">Status</th>
+                                    <th className="w-[10%] px-2 py-2 pr-4 text-center font-semibold">Ações</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {profissionais.map((prof) => (
                                     <tr
                                         key={prof.id}
-                                        className="border-b hover:bg-gray-200 h-[48px] cursor-pointer"
+                                        className={`border-b h-[48px] cursor-pointer ${
+                                            prof.status === "Inativo"
+                                                ? "bg-gray-100 text-gray-400 opacity-75 hover:bg-gray-100"
+                                                : "hover:bg-gray-200"
+                                        }`}
                                         onClick={() =>
                                             navigate("/SecretariaDashboard/PacienteCard/VerAtendimentos", {
                                                 state: {
@@ -340,9 +390,9 @@ export default function ProfissionalCard() {
                                             })
                                         }
                                     >
-                                        <td className="px-3 py-2 text-center break-words">{prof.nome}</td>
+                                        <td className="px-2 py-2 text-center break-words">{prof.nome}</td>
                                         <td
-                                            className="px-3 py-2 text-center cursor-text select-text break-all"
+                                            className="px-2 py-2 text-center cursor-text select-text break-all text-xs"
                                             onClick={(e) => e.stopPropagation()}
                                         >
                                             {prof.email}
@@ -354,11 +404,18 @@ export default function ProfissionalCard() {
                                                 {prof.especialidade}
                                             </span>
                                         </td>
-                                        <td className="px-3 py-2 text-center">{prof.qtdAtendimentos ?? 0}</td>
-                                        <td className="px-3 py-2 text-center">{prof.qtdAtendimentosMesAtual ?? 0}</td>
-                                        <td className="px-3 py-2 text-center break-words">{prof.registroProfissional || "-"}</td>
-                                        <td className="px-3 py-2 text-center">
-                                            <div className="flex justify-center gap-1">
+                                        <td className="px-1 py-2 text-center">{prof.qtdAtendimentos ?? 0}</td>
+                                        <td className="px-1 py-2 text-center">{prof.qtdAtendimentosMesAtual ?? 0}</td>
+                                        <td className="px-2 py-2 text-center break-words text-xs">{prof.registroProfissional || "-"}</td>
+                                        <td className="px-2 py-2 text-center">
+                                            <span
+                                                className={`px-1.5 py-1 rounded-md text-xs font-medium ${getStatusBadgeColor(prof.status || "Ativo")}`}
+                                            >
+                                                {prof.status || "Ativo"}
+                                            </span>
+                                        </td>
+                                        <td className="px-2 py-2 pr-4 text-center">
+                                            <div className="flex justify-center gap-0.5">
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
@@ -366,10 +423,10 @@ export default function ProfissionalCard() {
                                                         e.stopPropagation();
                                                         setProfissionalSelecionado(prof);
                                                     }}
-                                                    className="cursor-pointer border border-transparent transition-all hover:border-yellow-300 hover:bg-yellow-50 hover:shadow-sm hover:scale-105"
+                                                    className="h-7 w-7 cursor-pointer border border-transparent p-0 transition-all hover:border-yellow-300 hover:bg-yellow-50 hover:shadow-sm"
                                                     title="Editar profissional"
                                                 >
-                                                    <Pencil className="w-4 h-4 text-yellow-600" />
+                                                    <Pencil className="w-3.5 h-3.5 text-yellow-600" />
                                                 </Button>
 
 
@@ -382,10 +439,10 @@ export default function ProfissionalCard() {
                                                         setDeleteProf(true);
                                                         setProfissionalSelecionadoDel(prof);
                                                     }}
-                                                    className="cursor-pointer border border-transparent transition-all hover:border-red-200 hover:bg-red-50 hover:shadow-sm hover:scale-105"
+                                                    className="h-7 w-7 cursor-pointer border border-transparent p-0 transition-all hover:border-red-200 hover:bg-red-50 hover:shadow-sm"
                                                     title="Excluir profissional"
                                                 >
-                                                    <Trash2 className="w-4 h-4 text-red-600" />
+                                                    <Trash2 className="w-3.5 h-3.5 text-red-600" />
                                                 </Button>
 
                                                 <Button
@@ -395,10 +452,24 @@ export default function ProfissionalCard() {
                                                         e.stopPropagation();
                                                         abrirModalSenha(prof);
                                                     }}
-                                                    className="cursor-pointer border border-transparent transition-all hover:border-blue-200 hover:bg-blue-50 hover:shadow-sm hover:scale-105"
+                                                    className="h-7 w-7 cursor-pointer border border-transparent p-0 transition-all hover:border-blue-200 hover:bg-blue-50 hover:shadow-sm"
                                                     title="Gerenciar senha"
                                                 >
-                                                    <KeyRound className="w-4 h-4 text-blue-600" />
+                                                    <KeyRound className="w-3.5 h-3.5 text-blue-600" />
+                                                </Button>
+
+                                                <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        setProfissionalAtivoInativo(prof);
+                                                        setModalProfissionalAtivoInativo(true);
+                                                    }}
+                                                    className="h-7 w-7 cursor-pointer border border-transparent p-0 transition-all hover:border-amber-200 hover:bg-amber-50 hover:shadow-sm"
+                                                    title={prof.status === "Inativo" ? "Ativar profissional" : "Inativar profissional"}
+                                                >
+                                                    <Power className={`w-3.5 h-3.5 ${prof.status === "Inativo" ? "text-green-600" : "text-amber-600"}`} />
                                                 </Button>
                                             </div>
                                         </td>
@@ -506,6 +577,21 @@ export default function ProfissionalCard() {
                                         }
                                     />
                                 </div>
+                                <div className="flex items-center gap-2">
+                                    <input
+                                        type="checkbox"
+                                        checked={(profissionalSelecionado.status || "Ativo") === "Ativo"}
+                                        onChange={(e) =>
+                                            setProfissionalSelecionado({
+                                                ...profissionalSelecionado,
+                                                status: e.target.checked ? "Ativo" : "Inativo",
+                                            })
+                                        }
+                                    />
+                                    <label className="text-sm font-medium">
+                                        Profissional Ativo
+                                    </label>
+                                </div>
                             </div>
 
                             <div className="flex justify-end gap-2 pt-4">
@@ -567,6 +653,55 @@ export default function ProfissionalCard() {
                                     Excluir
                                 </Button>
 
+                            </div>
+                        </div>
+                    </div>
+                )}
+                {modalProfissionalAtivoInativo && (
+                    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+                        <div className="bg-white rounded-lg p-6 max-w-lg w-full shadow-lg">
+                            <div className="flex justify-center mb-3">
+                                <PriorityHighIcon
+                                    sx={{ fontSize: 44 }}
+                                    className="text-yellow-500"
+                                />
+                            </div>
+                            <h2 className="text-lg font-semibold mb-4 text-center">
+                                Alterar Status do Profissional?
+                            </h2>
+                            <div className="border border-yellow-300 rounded-lg px-4 py-3 bg-yellow-50 text-center mt-2">
+                                <p className="text-gray-700">
+                                    O(A) profissional <strong>{profissionalAtivoInativo?.nome}</strong> ficará como{" "}
+                                    <span
+                                        className={`inline-flex px-2 py-0.5 rounded-md text-xs font-semibold uppercase ${getStatusBadgeColor(
+                                            profissionalAtivoInativo?.status === "Ativo" ? "Inativo" : "Ativo"
+                                        )}`}
+                                    >
+                                        {profissionalAtivoInativo?.status === "Ativo" ? "Inativo" : "Ativo"}
+                                    </span>
+                                </p>
+                            </div>
+                            <p className="mt-4 text-center text-sm text-gray-600">
+                                Profissionais inativos não aparecerão no Controle PTS.
+                            </p>
+
+                            <div className="flex justify-end gap-2 mt-6">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => {
+                                        setProfissionalAtivoInativo(null);
+                                        setModalProfissionalAtivoInativo(false);
+                                    }}
+                                >
+                                    Cancelar
+                                </Button>
+
+                                <Button
+                                    className="bg-yellow-400 hover:bg-yellow-500 text-black"
+                                    onClick={alterarStatusProfissional}
+                                >
+                                    Alterar
+                                </Button>
                             </div>
                         </div>
                     </div>

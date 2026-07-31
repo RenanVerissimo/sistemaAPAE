@@ -183,16 +183,6 @@ export function VerAtendimentos() {
 
         <h2 className="text-lg font-semibold">Histórico de Atendimentos</h2>
 
-        <Button
-          variant="ghost"
-          size="sm"
-          className="ml-auto bg-green-600 hover:bg-green-700 text-white"
-          onClick={() =>
-            navigate("/SecretariaDashboard/PacienteCard/VerAtendimentos/AtendimentoEspecifico")
-          }
-        >
-          Atendimentos por Profissional
-        </Button>
       </div>
 
       <Card className="bg-blue-50 border-blue-200">

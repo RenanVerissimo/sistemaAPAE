@@ -28,6 +28,7 @@ export interface Profissional {
   outraEspecialidade?: string;
 
   registroProfissional?: string;
+  status?: "Ativo" | "Inativo";
 
   rolee: string;
 
@@ -73,6 +74,7 @@ export interface User {
   especialidade: string;
   outraEspecialidade?: string;
   registroProfissional?: string;
+  status?: "Ativo" | "Inativo";
   rolee?: string;
   qtdAtendimentos?: number;
   role?: Role;

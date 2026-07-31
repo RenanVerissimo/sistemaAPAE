@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ChevronLeft, FileText, UserPlus } from "lucide-react";
+import { BarChart3, ChevronLeft, FileText, UserPlus } from "lucide-react";
 import { Button } from "@/app/components/ui/button";
 import { useNavigate, useLocation } from "react-router-dom";
 
@@ -43,6 +43,14 @@ export function PacienteCard() {
                 </div>
 
                 <div className="flex gap-2">
+                    <Button
+                        className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                        onClick={() => navigate("/SecretariaDashboard/PacienteCard/VerAtendimentos/AtendimentoEspecifico")}
+                    >
+                        <BarChart3 className="w-4 h-4 mr-2" />
+                        Quantidade de atendimentos
+                    </Button>
+
                     <Button
                         className="bg-blue-600 hover:bg-blue-700 text-white"
                         onClick={() => navigate("/SecretariaDashboard/PacienteCard/VerAtendimentos")}

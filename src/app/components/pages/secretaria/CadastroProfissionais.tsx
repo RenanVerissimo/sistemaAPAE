@@ -49,6 +49,7 @@ export function CadastroProfissionais() {
         especialidade: especialidadeFinal,
         registroProfissional,
         dataNasc,
+        status: "Ativo",
         rolee: '',
       });
 

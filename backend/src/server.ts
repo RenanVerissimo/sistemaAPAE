@@ -118,8 +118,20 @@ async function garantirTabelaRegistrosPTS() {
   }
 }
 
+async function garantirTabelaProfissionais() {
+  const [columns]: any = await db.query("SHOW COLUMNS FROM profissionais");
+  const columnNames = new Set(columns.map((column: any) => column.Field));
+
+  if (!columnNames.has("status")) {
+    await db.query(
+      "ALTER TABLE profissionais ADD COLUMN status VARCHAR(20) NOT NULL DEFAULT 'Ativo'"
+    );
+  }
+}
+
 async function garantirTabelas() {
   await garantirTabelaLaudos();
+  await garantirTabelaProfissionais();
   await garantirTabelaRegistrosPTS();
 }
 
@@ -246,6 +258,7 @@ app.get("/profissionais", async (req: Request, res: Response) => {
         p.especialidade,
         p.outraEspecialidade,
         p.registroProfissional,
+        COALESCE(p.status, 'Ativo') AS status,
         p.rolee,
         COALESCE(atendimentos_total.qtdAtendimentos, 0) AS qtdAtendimentos,
         COALESCE(atendimentos_mes.qtdAtendimentosMesAtual, 0) AS qtdAtendimentosMesAtual
@@ -304,6 +317,7 @@ app.get("/profissionais/status-pts", async (req: Request, res: Response) => {
        AND r.profissional_id = p.id
        AND r.ano_referencia = ?
       WHERE p.rolee <> 'SECRETARIA'
+        AND COALESCE(p.status, 'Ativo') = 'Ativo'
         AND COALESCE(pac.status, 'Ativo') = 'Ativo'
       ORDER BY pac.nome ASC, p.nome ASC
     `, [anoReferencia, anoReferencia]);
@@ -319,7 +333,7 @@ app.post("/profissionais", async (req: Request, res: Response) => {
   try {
     const {
       nome, email, dataNasc, senha, especialidade,
-      outraEspecialidade, registroProfissional, rolee,
+      outraEspecialidade, registroProfissional, rolee, status,
     } = req.body;
 
     if (!nome || !email || !senha || !especialidade) {
@@ -339,12 +353,12 @@ app.post("/profissionais", async (req: Request, res: Response) => {
     const [result]: any = await db.query(
       `INSERT INTO profissionais
         (nome, email, dataNasc, senha, especialidade, outraEspecialidade,
-         registroProfissional, rolee)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+         registroProfissional, rolee, status)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       [
         nome, email, dataNasc, senha, especialidade,
         outraEspecialidade || null, registroProfissional || null,
-        rolee || "PROFISSIONAL",
+        rolee || "PROFISSIONAL", status ?? "Ativo",
       ]
     );
 
@@ -363,17 +377,17 @@ app.put("/profissionais/:id", async (req: Request, res: Response) => {
     const { id } = req.params;
     const {
       nome, email, dataNasc, especialidade,
-      outraEspecialidade, registroProfissional,
+      outraEspecialidade, registroProfissional, status,
     } = req.body;
 
     await db.query(
       `UPDATE profissionais
          SET nome = ?, email = ?, dataNasc = ?, especialidade = ?,
-             outraEspecialidade = ?, registroProfissional = ?
+             outraEspecialidade = ?, registroProfissional = ?, status = ?
        WHERE id = ?`,
       [
         nome, email, dataNasc, especialidade,
-        outraEspecialidade || null, registroProfissional || null, id,
+        outraEspecialidade || null, registroProfissional || null, status ?? "Ativo", id,
       ]
     );
     res.json({ message: "Profissional atualizado com sucesso" });
@@ -726,6 +740,7 @@ app.post("/registros-pts/ciclos", async (req: Request, res: Response) => {
        FROM pacientes pac
        CROSS JOIN profissionais prof
        WHERE prof.rolee <> 'SECRETARIA'
+         AND COALESCE(prof.status, 'Ativo') = 'Ativo'
          AND COALESCE(pac.status, 'Ativo') = 'Ativo'
        ON DUPLICATE KEY UPDATE
          status_prof_pts = status_prof_pts`,
