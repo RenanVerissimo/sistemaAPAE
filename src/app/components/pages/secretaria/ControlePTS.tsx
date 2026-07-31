@@ -74,7 +74,6 @@ export default function ControlePTS() {
   const [registrosPTS, setRegistrosPTS] = useState<ControlePTSRegistro[]>([]);
   const [filtro, setFiltro] = useState<FiltroStatus>("todos");
   const [buscaPaciente, setBuscaPaciente] = useState("");
-  const [buscaProfissional, setBuscaProfissional] = useState("");
   const [paginaAtual, setPaginaAtual] = useState(1);
   const [carregando, setCarregando] = useState(true);
   const [baixandoRelatorio, setBaixandoRelatorio] = useState<string | null>(null);
@@ -135,22 +134,18 @@ export default function ControlePTS() {
 
   const pacientesAgrupados = useMemo(() => {
     const termoPaciente = buscaPaciente.trim().toLowerCase();
-    const termoProfissional = buscaProfissional.trim().toLowerCase();
 
     return pacientesAgrupadosTodos.filter((paciente) => {
       const statusPaciente = getStatusPaciente(paciente.profissionais);
       const pacienteEncontrado = paciente.pacienteNome.toLowerCase().includes(termoPaciente);
-      const profissionalEncontrado = paciente.profissionais.some((profissional) =>
-        profissional.profissionalNome.toLowerCase().includes(termoProfissional)
-      );
 
-      return (filtro === "todos" || statusPaciente === filtro) && pacienteEncontrado && profissionalEncontrado;
+      return (filtro === "todos" || statusPaciente === filtro) && pacienteEncontrado;
     });
-  }, [buscaPaciente, buscaProfissional, filtro, pacientesAgrupadosTodos]);
+  }, [buscaPaciente, filtro, pacientesAgrupadosTodos]);
 
   useEffect(() => {
     setPaginaAtual(1);
-  }, [buscaPaciente, buscaProfissional, filtro]);
+  }, [buscaPaciente, filtro]);
 
   const totalPaginas = Math.max(1, Math.ceil(pacientesAgrupados.length / PACIENTES_POR_PAGINA));
   const pacientesPaginados = pacientesAgrupados.slice(
@@ -228,7 +223,6 @@ export default function ControlePTS() {
       setAnoReferencia(proximoAnoReferencia);
       setFiltro("todos");
       setBuscaPaciente("");
-      setBuscaProfissional("");
       setPaginaAtual(1);
       setModalNovoCiclo(false);
       setMensagemCiclo(`Ciclo PTS ${proximoAnoReferencia} iniciado com sucesso.`);
@@ -291,18 +285,12 @@ export default function ControlePTS() {
             <p className="mb-3 inline-flex rounded-md bg-gray-800 px-2 py-1 text-xs font-semibold uppercase tracking-wide text-white">
               Busca
             </p>
-            <div className="grid gap-2 sm:grid-cols-2">
+            <div className="grid gap-2">
               <input
                 className="h-10 rounded-md border border-gray-300 px-3 text-sm outline-none focus:border-blue-500"
                 value={buscaPaciente}
                 onChange={(e) => setBuscaPaciente(e.target.value)}
                 placeholder="Filtrar por paciente"
-              />
-              <input
-                className="h-10 rounded-md border border-gray-300 px-3 text-sm outline-none focus:border-blue-500"
-                value={buscaProfissional}
-                onChange={(e) => setBuscaProfissional(e.target.value)}
-                placeholder="Filtrar por profissional"
               />
             </div>
           </div>
@@ -360,7 +348,7 @@ export default function ControlePTS() {
               <tr>
                 <th className="w-[24%] px-3 py-2 text-left font-semibold">Paciente</th>
                 <th className="w-[68%] px-3 py-2 text-left font-semibold">Status PTS por profissional</th>
-                <th className="w-[8%] px-2 py-2 text-center font-semibold">PDF</th>
+                <th className="w-[8%] px-2 py-2 text-center font-semibold">Download PTS</th>
               </tr>
             </thead>
             <tbody>
