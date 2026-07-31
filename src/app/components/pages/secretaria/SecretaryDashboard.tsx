@@ -32,6 +32,7 @@ export function SecretaryDashboard({
   const [qtdProfissionais, setQtdProfissionais] = useState<number>(0);
   const [qtdPacientes, setQtdPacientes] = useState<number>(0);
   const [fazendoBackup, setFazendoBackup] = useState(false);
+  const [contadorSincronizacaoBackup, setContadorSincronizacaoBackup] = useState(0);
   const [modalBackup, setModalBackup] = useState(false);
   const [snackbar, setSnackbar] = useState({
     open: false,
@@ -55,25 +56,49 @@ export function SecretaryDashboard({
     fetchQtd();
  }, [location.pathname]);
 
+  const aguardarSincronizacaoGoogleDrive = () => {
+    const segundos = 30;
+    setContadorSincronizacaoBackup(segundos);
+
+    return new Promise<void>((resolve) => {
+      let restante = segundos;
+
+      const intervalId = window.setInterval(() => {
+        restante -= 1;
+        setContadorSincronizacaoBackup(restante);
+
+        if (restante <= 0) {
+          window.clearInterval(intervalId);
+          resolve();
+        }
+      }, 1000);
+    });
+  };
+
   const handleBackupManual = async () => {
     setModalBackup(false);
     setFazendoBackup(true);
     try {
       await executarBackupManual();
+      await aguardarSincronizacaoGoogleDrive();
       setSnackbar({
         open: true,
-        message: "Backup realizado com sucesso!",
+        message: "Backup realizado com sucesso! O Google Drive teve 30 segundos para iniciar a sincronizacao.",
         severity: "success",
       });
     } catch (error) {
       console.error("Erro ao executar backup:", error);
       setSnackbar({
         open: true,
-        message: "Erro ao executar backup. Verifique se a pasta de backup esta acessivel.",
+        message:
+          error instanceof Error
+            ? `Erro ao executar backup: ${error.message}`
+            : "Erro ao executar backup. Verifique se a pasta de backup esta acessivel.",
         severity: "error",
       });
     } finally {
       setFazendoBackup(false);
+      setContadorSincronizacaoBackup(0);
     }
   };
 
@@ -194,9 +219,18 @@ export function SecretaryDashboard({
                           className="bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-70"
                         >
                           <DatabaseBackup className="w-4 h-4 mr-2" />
-                          {fazendoBackup ? "Fazendo backup..." : "Fazer backup"}
+                          {contadorSincronizacaoBackup > 0
+                            ? `Aguarde ${contadorSincronizacaoBackup}s`
+                            : fazendoBackup
+                              ? "Fazendo backup..."
+                              : "Fazer backup"}
                         </Button>
                       </div>
+                      {contadorSincronizacaoBackup > 0 && (
+                        <div className="mt-4 rounded-md border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-medium text-blue-800">
+                          Backup salvo. Aguarde {contadorSincronizacaoBackup}s antes de desligar o computador para o Google Drive sincronizar.
+                        </div>
+                      )}
                     </CardContent>
                   </Card>
                 </div>
@@ -241,7 +275,7 @@ export function SecretaryDashboard({
               <p>Antes de continuar, confirme que:</p>
               <p>- A pasta de backup esta acessivel.</p>
               <p>- O Google Drive esta sincronizando normalmente.</p>
-              <p>- O computador nao sera desligado durante o processo.</p>
+              <p>- O computador nao sera desligado durante o processo e pelos 30 segundos seguintes.</p>
             </div>
 
             <div className="flex justify-end gap-2 mt-6">
