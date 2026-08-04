@@ -100,12 +100,32 @@ export function PacientesTableAtendimentoEspecifico() {
   const atendimentosPorPacienteEspecialidade = useMemo(() => {
     const contagem = new Map<string, number>();
 
-    atendimentos.forEach((atendimento) => {
-      if (!atendimento.paciente_id || !atendimento.especialidade) return;
+    const hoje = new Date();
 
-      const chave = `${atendimento.paciente_id}-${normalizarChave(
-        atendimento.especialidade
-      )}`;
+    const anoMesAtual = `${hoje.getFullYear()}-${String(
+      hoje.getMonth() + 1
+    ).padStart(2, "0")}`;
+
+    atendimentos.forEach((atendimento) => {
+      if (
+        !atendimento.paciente_id ||
+        !atendimento.especialidade ||
+        !atendimento.dataConsulta
+      ) {
+        return;
+      }
+
+      const anoMesAtendimento = String(atendimento.dataConsulta)
+        .split("T")[0]
+        .slice(0, 7);
+
+      if (anoMesAtendimento !== anoMesAtual) {
+        return;
+      }
+
+      const chave = `${Number(
+        atendimento.paciente_id
+      )}-${normalizarChave(atendimento.especialidade)}`;
 
       contagem.set(chave, (contagem.get(chave) || 0) + 1);
     });
@@ -387,11 +407,10 @@ export function PacientesTableAtendimentoEspecifico() {
           {gerarPaginas().map((numero) => (
             <button
               key={numero}
-              className={`px-2 py-1 rounded ${
-                numero === paginaAtual
+              className={`px-2 py-1 rounded ${numero === paginaAtual
                   ? "bg-gray-800 text-white"
                   : "hover:bg-gray-200"
-              }`}
+                }`}
               onClick={() => setPaginaAtual(numero)}
             >
               {numero}
