@@ -88,7 +88,7 @@ export function Login({ onLogin }: LoginProps) {
           </div>
           <CardTitle className="text-2xl">Sistema APAE</CardTitle>
           <CardDescription>
-            Gerenciamento de Consultas e Relatórios
+            Gerenciamento de Atendimentos e Relatórios
           </CardDescription>
         </CardHeader>
         <CardContent>

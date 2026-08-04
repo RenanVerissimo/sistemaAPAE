@@ -301,7 +301,7 @@ export function PacientesTableAtendimentoEspecifico() {
                   </th>
                 ))}
                 <th className="w-[92px] border-l border-r border-amber-300 bg-amber-100 px-1 py-2 text-center text-xs font-semibold text-amber-900">
-                  Total Consultas do mês
+                  Total Atendimentos do mês
                 </th>
               </tr>
             </thead>
