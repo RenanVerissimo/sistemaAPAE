@@ -12,6 +12,7 @@ const __dirname = path.dirname(__filename);
 
 const app = express();
 const PORT = 3000;
+const DEBUG_ATENDIMENTOS_TAG = "[DEBUG atendimentos]";
 
 app.use(cors());
 app.use(express.json());
@@ -139,6 +140,12 @@ async function garantirTabelas() {
 
 app.get("/pacientes", async (req: Request, res: Response) => {
   try {
+    const inicioMesSql = "DATE_FORMAT(CURDATE(), '%Y-%m-01')";
+    console.log(`${DEBUG_ATENDIMENTOS_TAG} GET /pacientes iniciado`);
+    console.log(
+      `${DEBUG_ATENDIMENTOS_TAG} /pacientes usa mes do MySQL entre ${inicioMesSql} e proximo mes`
+    );
+
     const [rows] = await db.query(`
       SELECT
         p.id,
@@ -165,6 +172,19 @@ app.get("/pacientes", async (req: Request, res: Response) => {
         GROUP BY paciente_id
       ) atendimentos_mes ON atendimentos_mes.paciente_id = p.id
     `);
+
+    const pacientesRows = rows as any[];
+    console.log(`${DEBUG_ATENDIMENTOS_TAG} /pacientes total retornado:`, pacientesRows.length);
+    console.table(
+      pacientesRows.slice(0, 20).map((paciente) => ({
+        id: paciente.id,
+        nome: paciente.nome,
+        prontuario: paciente.prontuario,
+        status: paciente.status,
+        qtdConsultasRealizadas: paciente.qtdConsultasRealizadas,
+        qtdConsultasMesAtual: paciente.qtdConsultasMesAtual,
+      }))
+    );
     res.json(rows);
   } catch (error) {
     console.error("Erro ao buscar pacientes:", error);
@@ -433,6 +453,13 @@ app.put("/profissionais/:id/senha", async (req: Request, res: Response) => {
 app.get("/atendimentos", async (req: Request, res: Response) => {
   try {
     const { paciente, profissional, especialidade, dataInicio, dataFim } = req.query;
+    console.log(`${DEBUG_ATENDIMENTOS_TAG} GET /atendimentos filtros recebidos:`, {
+      paciente,
+      profissional,
+      especialidade,
+      dataInicio,
+      dataFim,
+    });
 
     let sql = `
       SELECT a.*,
@@ -469,7 +496,23 @@ app.get("/atendimentos", async (req: Request, res: Response) => {
 
     sql += " ORDER BY a.dataConsulta DESC, a.id DESC";
 
+    console.log(`${DEBUG_ATENDIMENTOS_TAG} SQL /atendimentos:`, sql.replace(/\s+/g, " ").trim());
+    console.log(`${DEBUG_ATENDIMENTOS_TAG} params /atendimentos:`, params);
+
     const [rows] = await db.query(sql, params);
+    const atendimentoRows = rows as any[];
+    console.log(`${DEBUG_ATENDIMENTOS_TAG} /atendimentos total retornado:`, atendimentoRows.length);
+    console.table(
+      atendimentoRows.slice(0, 30).map((atendimento) => ({
+        id: atendimento.id,
+        paciente_id: atendimento.paciente_id,
+        nomePaciente: atendimento.nomePaciente,
+        profissional_id: atendimento.profissional_id,
+        nomeProfissional: atendimento.nomeProfissional,
+        especialidade: atendimento.especialidade,
+        dataConsulta: atendimento.dataConsulta,
+      }))
+    );
     res.json(rows);
   } catch (error) {
     console.error("Erro ao buscar atendimentos:", error);

@@ -1,4 +1,5 @@
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
+const DEBUG_API_TAG = "[API atendimentos]";
 
 // ==================== PACIENTES ====================
 
@@ -271,9 +272,32 @@ export const getAtendimentos = async (filtros: {
     if (filtros.dataInicio) params.append("dataInicio", filtros.dataInicio);
     if (filtros.dataFim) params.append("dataFim", filtros.dataFim);
 
-    const response = await fetch(`${API_BASE_URL}/atendimentos?${params.toString()}`);
+    const url = `${API_BASE_URL}/atendimentos?${params.toString()}`;
+    console.groupCollapsed(`${DEBUG_API_TAG} GET /atendimentos`);
+    console.log("URL:", url);
+    console.log("Filtros enviados:", filtros);
+    console.groupEnd();
+
+    const response = await fetch(url);
     if (!response.ok) throw new Error("Erro ao buscar atendimentos");
-    return await response.json();
+    const data = await response.json();
+
+    console.groupCollapsed(`${DEBUG_API_TAG} resposta /atendimentos`);
+    console.log("Total retornado:", data.length);
+    console.table(
+      data.slice(0, 30).map((atendimento: any) => ({
+        id: atendimento.id,
+        paciente_id: atendimento.paciente_id,
+        nomePaciente: atendimento.nomePaciente,
+        profissional_id: atendimento.profissional_id,
+        nomeProfissional: atendimento.nomeProfissional,
+        especialidade: atendimento.especialidade,
+        dataConsulta: atendimento.dataConsulta,
+      }))
+    );
+    console.groupEnd();
+
+    return data;
   } catch (error) {
     console.error("Erro ao buscar atendimentos:", error);
     return [];

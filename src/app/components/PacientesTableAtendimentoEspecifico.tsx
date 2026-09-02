@@ -10,6 +10,8 @@ import { Atendimento, Paciente, Profissional } from "./interfaces/interfaces";
 import NavigateBeforeIcon from "@mui/icons-material/NavigateBefore";
 import NavigateNextIcon from "@mui/icons-material/NavigateNext";
 
+const DEBUG_ATENDIMENTOS_TAG = "[PacientesTableAtendimentos]";
+
 function obterEspecialidade(profissional: Profissional) {
   if (profissional.especialidade === "outro") {
     return profissional.outraEspecialidade?.trim() || "Outro";
@@ -69,6 +71,23 @@ export function PacientesTableAtendimentoEspecifico() {
             getAtendimentos({}),
           ]);
 
+        console.groupCollapsed(`${DEBUG_ATENDIMENTOS_TAG} dados carregados`);
+        console.log("Pacientes recebidos:", pacientesData.length);
+        console.log("Profissionais recebidos:", profissionaisData.length);
+        console.log("Atendimentos recebidos:", atendimentosData.length);
+        console.table(
+          atendimentosData.slice(0, 20).map((atendimento: any) => ({
+            id: atendimento.id,
+            paciente_id: atendimento.paciente_id,
+            nomePaciente: atendimento.nomePaciente,
+            profissional_id: atendimento.profissional_id,
+            nomeProfissional: atendimento.nomeProfissional,
+            especialidade: atendimento.especialidade,
+            dataConsulta: atendimento.dataConsulta,
+          }))
+        );
+        console.groupEnd();
+
         setPacientes(pacientesData);
         setProfissionais(profissionaisData);
         setAtendimentos(atendimentosData);
@@ -106,12 +125,17 @@ export function PacientesTableAtendimentoEspecifico() {
       hoje.getMonth() + 1
     ).padStart(2, "0")}`;
 
+    const ignoradosSemCampos: Atendimento[] = [];
+    const ignoradosForaDoMes: Atendimento[] = [];
+    const consideradosNoMes: Atendimento[] = [];
+
     atendimentos.forEach((atendimento) => {
       if (
         !atendimento.paciente_id ||
         !atendimento.especialidade ||
         !atendimento.dataConsulta
       ) {
+        ignoradosSemCampos.push(atendimento);
         return;
       }
 
@@ -120,8 +144,11 @@ export function PacientesTableAtendimentoEspecifico() {
         .slice(0, 7);
 
       if (anoMesAtendimento !== anoMesAtual) {
+        ignoradosForaDoMes.push(atendimento);
         return;
       }
+
+      consideradosNoMes.push(atendimento);
 
       const chave = `${Number(
         atendimento.paciente_id
@@ -129,6 +156,33 @@ export function PacientesTableAtendimentoEspecifico() {
 
       contagem.set(chave, (contagem.get(chave) || 0) + 1);
     });
+
+    console.groupCollapsed(
+      `${DEBUG_ATENDIMENTOS_TAG} contagem por especialidade - mes ${anoMesAtual}`
+    );
+    console.log("Data local do navegador:", hoje.toString());
+    console.log("Atendimentos totais recebidos:", atendimentos.length);
+    console.log("Considerados no mes:", consideradosNoMes.length);
+    console.log("Ignorados sem paciente/especialidade/data:", ignoradosSemCampos.length);
+    console.log("Ignorados fora do mes:", ignoradosForaDoMes.length);
+    console.table(
+      consideradosNoMes.slice(0, 30).map((atendimento) => ({
+        id: atendimento.id,
+        paciente_id: atendimento.paciente_id,
+        nomePaciente: atendimento.nomePaciente,
+        profissional_id: atendimento.profissional_id,
+        nomeProfissional: atendimento.nomeProfissional,
+        especialidade: atendimento.especialidade,
+        dataConsulta: atendimento.dataConsulta,
+      }))
+    );
+    console.table(
+      Array.from(contagem.entries()).map(([chave, total]) => ({
+        chave,
+        total,
+      }))
+    );
+    console.groupEnd();
 
     return contagem;
   }, [atendimentos]);
@@ -140,20 +194,55 @@ export function PacientesTableAtendimentoEspecifico() {
       hoje.getMonth() + 1
     ).padStart(2, "0")}`;
 
+    const consideradosNoMes: Atendimento[] = [];
+    const ignoradosSemCampos: Atendimento[] = [];
+    const ignoradosForaDoMes: Atendimento[] = [];
+
     atendimentos.forEach((atendimento) => {
-      if (!atendimento.paciente_id || !atendimento.dataConsulta) return;
+      if (!atendimento.paciente_id || !atendimento.dataConsulta) {
+        ignoradosSemCampos.push(atendimento);
+        return;
+      }
 
       const anoMesAtendimento = String(atendimento.dataConsulta)
         .split("T")[0]
         .slice(0, 7);
 
-      if (anoMesAtendimento !== anoMesAtual) return;
+      if (anoMesAtendimento !== anoMesAtual) {
+        ignoradosForaDoMes.push(atendimento);
+        return;
+      }
 
+      consideradosNoMes.push(atendimento);
       contagem.set(
         Number(atendimento.paciente_id),
         (contagem.get(Number(atendimento.paciente_id)) || 0) + 1
       );
     });
+
+    console.groupCollapsed(
+      `${DEBUG_ATENDIMENTOS_TAG} total mensal por paciente - mes ${anoMesAtual}`
+    );
+    console.log("Data local do navegador:", hoje.toString());
+    console.log("Atendimentos totais recebidos:", atendimentos.length);
+    console.log("Considerados no mes:", consideradosNoMes.length);
+    console.log("Ignorados sem paciente/data:", ignoradosSemCampos.length);
+    console.log("Ignorados fora do mes:", ignoradosForaDoMes.length);
+    console.table(
+      consideradosNoMes.slice(0, 30).map((atendimento) => ({
+        id: atendimento.id,
+        paciente_id: atendimento.paciente_id,
+        nomePaciente: atendimento.nomePaciente,
+        dataConsulta: atendimento.dataConsulta,
+      }))
+    );
+    console.table(
+      Array.from(contagem.entries()).map(([pacienteId, total]) => ({
+        pacienteId,
+        total,
+      }))
+    );
+    console.groupEnd();
 
     return contagem;
   }, [atendimentos]);
