@@ -47,7 +47,15 @@ function getEspecialidadeBadgeColor(especialidade?: string) {
   }
 }
 
-export function PacientesTableAtendimentoEspecifico() {
+interface PacientesTableAtendimentoEspecificoProps {
+  anoMesSelecionado: string;
+  mesSelecionadoLabel: string;
+}
+
+export function PacientesTableAtendimentoEspecifico({
+  anoMesSelecionado,
+  mesSelecionadoLabel,
+}: PacientesTableAtendimentoEspecificoProps) {
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [profissionais, setProfissionais] = useState<Profissional[]>([]);
   const [atendimentos, setAtendimentos] = useState<Atendimento[]>([]);
@@ -99,6 +107,10 @@ export function PacientesTableAtendimentoEspecifico() {
     carregarDados();
   }, []);
 
+  useEffect(() => {
+    setPaginaAtual(1);
+  }, [anoMesSelecionado]);
+
   const especialidades = useMemo(() => {
     const especialidadesMap = new Map<string, string>();
 
@@ -121,10 +133,6 @@ export function PacientesTableAtendimentoEspecifico() {
 
     const hoje = new Date();
 
-    const anoMesAtual = `${hoje.getFullYear()}-${String(
-      hoje.getMonth() + 1
-    ).padStart(2, "0")}`;
-
     const ignoradosSemCampos: Atendimento[] = [];
     const ignoradosForaDoMes: Atendimento[] = [];
     const consideradosNoMes: Atendimento[] = [];
@@ -143,7 +151,7 @@ export function PacientesTableAtendimentoEspecifico() {
         .split("T")[0]
         .slice(0, 7);
 
-      if (anoMesAtendimento !== anoMesAtual) {
+      if (anoMesAtendimento !== anoMesSelecionado) {
         ignoradosForaDoMes.push(atendimento);
         return;
       }
@@ -158,9 +166,10 @@ export function PacientesTableAtendimentoEspecifico() {
     });
 
     console.groupCollapsed(
-      `${DEBUG_ATENDIMENTOS_TAG} contagem por especialidade - mes ${anoMesAtual}`
+      `${DEBUG_ATENDIMENTOS_TAG} contagem por especialidade - mes ${anoMesSelecionado}`
     );
     console.log("Data local do navegador:", hoje.toString());
+    console.log("Mes selecionado:", mesSelecionadoLabel);
     console.log("Atendimentos totais recebidos:", atendimentos.length);
     console.log("Considerados no mes:", consideradosNoMes.length);
     console.log("Ignorados sem paciente/especialidade/data:", ignoradosSemCampos.length);
@@ -185,14 +194,11 @@ export function PacientesTableAtendimentoEspecifico() {
     console.groupEnd();
 
     return contagem;
-  }, [atendimentos]);
+  }, [anoMesSelecionado, atendimentos, mesSelecionadoLabel]);
 
   const atendimentosMensaisPorPaciente = useMemo(() => {
     const contagem = new Map<number, number>();
     const hoje = new Date();
-    const anoMesAtual = `${hoje.getFullYear()}-${String(
-      hoje.getMonth() + 1
-    ).padStart(2, "0")}`;
 
     const consideradosNoMes: Atendimento[] = [];
     const ignoradosSemCampos: Atendimento[] = [];
@@ -208,7 +214,7 @@ export function PacientesTableAtendimentoEspecifico() {
         .split("T")[0]
         .slice(0, 7);
 
-      if (anoMesAtendimento !== anoMesAtual) {
+      if (anoMesAtendimento !== anoMesSelecionado) {
         ignoradosForaDoMes.push(atendimento);
         return;
       }
@@ -221,9 +227,10 @@ export function PacientesTableAtendimentoEspecifico() {
     });
 
     console.groupCollapsed(
-      `${DEBUG_ATENDIMENTOS_TAG} total mensal por paciente - mes ${anoMesAtual}`
+      `${DEBUG_ATENDIMENTOS_TAG} total mensal por paciente - mes ${anoMesSelecionado}`
     );
     console.log("Data local do navegador:", hoje.toString());
+    console.log("Mes selecionado:", mesSelecionadoLabel);
     console.log("Atendimentos totais recebidos:", atendimentos.length);
     console.log("Considerados no mes:", consideradosNoMes.length);
     console.log("Ignorados sem paciente/data:", ignoradosSemCampos.length);
@@ -245,7 +252,7 @@ export function PacientesTableAtendimentoEspecifico() {
     console.groupEnd();
 
     return contagem;
-  }, [atendimentos]);
+  }, [anoMesSelecionado, atendimentos, mesSelecionadoLabel]);
 
   const pacientesFiltrados = pacientes.filter((paciente) => {
     const matchBusca = filtroAplicado.trim()
@@ -390,7 +397,7 @@ export function PacientesTableAtendimentoEspecifico() {
                   </th>
                 ))}
                 <th className="w-[92px] border-l border-r border-amber-300 bg-amber-100 px-1 py-2 text-center text-xs font-semibold text-amber-900">
-                  Total Atendimentos do mês
+                  Total Atendimentos de {mesSelecionadoLabel}
                 </th>
               </tr>
             </thead>

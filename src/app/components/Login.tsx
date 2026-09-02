@@ -66,17 +66,6 @@ export function Login({ onLogin }: LoginProps) {
     }
   };
 
-  // 🔧 ATALHOS DE TESTE — REMOVER DEPOIS
-  const preencherPaula = () => {
-    setEmail('paula.secretaria@apae.com');
-    setSenha('123456');
-  };
-
-  const preencherCarlos = () => {
-    setEmail('carlos.mendes@apae.com');
-    setSenha('123456');
-  };
-
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <Card className="w-full max-w-md">
