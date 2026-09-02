@@ -19,6 +19,7 @@ export function CadastroProfissionais() {
   const [senha, setSenha] = useState('');
   const [especialidade, setEspecialidade] = useState<ProfessionalType>('psicologo');
   const [registroProfissional, setRegistroProfissional] = useState('');
+  const [rolee, setRolee] = useState<'PROFISSIONAL' | 'SECRETARIA'>('PROFISSIONAL');
   const [dataNasc, setDataNasc] = useState('');
   const [outraEspecialidade, setOutraEspecialidade] = useState('');
   const [salvando, setSalvando] = useState(false);
@@ -40,17 +41,21 @@ export function CadastroProfissionais() {
 
     try {
       const especialidadeFinal =
-        especialidade === 'outro' ? outraEspecialidade : especialidade;
+        rolee === 'SECRETARIA'
+          ? 'secretaria'
+          : especialidade === 'outro'
+            ? outraEspecialidade
+            : especialidade;
 
       await cadastrarProfissional({
         nome,
         email,
         senha,
         especialidade: especialidadeFinal,
-        registroProfissional,
+        registroProfissional: rolee === 'SECRETARIA' ? '' : registroProfissional,
         dataNasc,
         status: "Ativo",
-        rolee: '',
+        rolee,
       });
 
       // sucesso → volta para a lista levando a mensagem
@@ -214,6 +219,30 @@ export function CadastroProfissionais() {
             </div>
 
             <div className="space-y-2">
+              <Label>Categoria do usuário *</Label>
+              <Select
+                value={rolee}
+                onValueChange={(v) => {
+                  const novoTipo = v as 'PROFISSIONAL' | 'SECRETARIA';
+                  setRolee(novoTipo);
+                  if (novoTipo === 'SECRETARIA') {
+                    setRegistroProfissional('');
+                    setOutraEspecialidade('');
+                  }
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="PROFISSIONAL">Profissional</SelectItem>
+                  <SelectItem value="SECRETARIA">Secretaria</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {rolee === 'PROFISSIONAL' && (
+              <div className="space-y-2">
               <Label>Especialidade *</Label>
               <Select value={especialidade} onValueChange={v => setEspecialidade(v as ProfessionalType)}>
                 <SelectTrigger>
@@ -239,16 +268,19 @@ export function CadastroProfissionais() {
                   />
                 </div>
               )}
-            </div>
+              </div>
+            )}
 
-            <div className="space-y-2">
+            {rolee === 'PROFISSIONAL' && (
+              <div className="space-y-2">
               <Label>Registro Profissional</Label>
               <Input
                 placeholder="Ex: CRP 06/123456, CRM 123456, CRFa 1234"
                 value={registroProfissional}
                 onChange={e => setRegistroProfissional(e.target.value)}
               />
-            </div>
+              </div>
+            )}
 
             {erro && (
               <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded px-3 py-2">

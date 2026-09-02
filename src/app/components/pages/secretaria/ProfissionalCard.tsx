@@ -1,6 +1,6 @@
 import { Button } from "@/app/components/ui/button";
 import { Card } from "@mui/material";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { atualizarProfissional, deleteProfissional, getAllProfissionais } from "@/app/services/api";
 import SnackbarComponent from "../../SnackbarComponent";
 import PriorityHighIcon from '@mui/icons-material/PriorityHigh';
@@ -70,6 +70,7 @@ function gerarSenhaProfissional(prof: { nome?: string; dataNasc?: string; email?
 export default function ProfissionalCard() {
 
     const [profissionais, setProfissionais] = useState<Profissional[]>([]);
+    const [tipoVisualizacao, setTipoVisualizacao] = useState<'PROFISSIONAL' | 'SECRETARIA'>('PROFISSIONAL');
 
     const [profissionalSelecionado, setProfissionalSelecionado] = useState<Profissional | null>(null);
     const [profissionalSelecionadoDel, setProfissionalSelecionadoDel] = useState<Profissional | null>(null);
@@ -139,9 +140,19 @@ export default function ProfissionalCard() {
 
 
     const fetchProfissionais = async () => {
-        const pro = await getAllProfissionais();
+        const pro = await getAllProfissionais({ rolee: "TODOS" });
         setProfissionais(pro);
     }
+
+    const profissionaisFiltrados = useMemo(() => {
+        return profissionais.filter((prof) =>
+            tipoVisualizacao === 'SECRETARIA'
+                ? prof.rolee === 'SECRETARIA'
+                : prof.rolee !== 'SECRETARIA'
+        );
+    }, [profissionais, tipoVisualizacao]);
+
+    const isSecretaria = (prof: Profissional) => prof.rolee === 'SECRETARIA';
 
     const salvarEdicaoProfissional = async () => {
         if (!profissionalSelecionado) return;
@@ -322,12 +333,35 @@ export default function ProfissionalCard() {
                     </Button>
 
                     <h2 className="text-lg font-semibold">
-                        Profissionais
+                        {tipoVisualizacao === 'SECRETARIA' ? 'Secretarias' : 'Profissionais'}
                     </h2>
                 </div>
 
                 {/* DIREITA */}
                 <div className="flex flex-wrap gap-2">
+                    <div className="flex items-center gap-1 rounded-lg border border-gray-300 bg-white p-1">
+                        <button
+                            type="button"
+                            onClick={() => setTipoVisualizacao('PROFISSIONAL')}
+                            className={`rounded-md px-3 py-1.5 text-sm font-semibold transition-colors ${tipoVisualizacao === 'PROFISSIONAL'
+                                ? "bg-gray-800 text-white"
+                                : "text-gray-600 hover:bg-gray-100"
+                                }`}
+                        >
+                            Profissionais
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setTipoVisualizacao('SECRETARIA')}
+                            className={`rounded-md px-3 py-1.5 text-sm font-semibold transition-colors ${tipoVisualizacao === 'SECRETARIA'
+                                ? "bg-gray-800 text-white"
+                                : "text-gray-600 hover:bg-gray-100"
+                                }`}
+                        >
+                            Secretarias
+                        </button>
+                    </div>
+
                     <Button
                         className="bg-emerald-600 hover:bg-emerald-700 text-white"
                         onClick={() => navigate("/SecretariaDashboard/ProfissionalCard/ControlePTS")}
@@ -374,7 +408,7 @@ export default function ProfissionalCard() {
                                 </tr>
                             </thead>
                             <tbody>
-                                {profissionais.map((prof) => (
+                                {profissionaisFiltrados.map((prof) => (
                                     <tr
                                         key={prof.id}
                                         className={`border-b h-[48px] cursor-pointer ${
@@ -382,13 +416,15 @@ export default function ProfissionalCard() {
                                                 ? "bg-gray-100 text-gray-400 opacity-75 hover:bg-gray-100"
                                                 : "hover:bg-gray-200"
                                         }`}
-                                        onClick={() =>
+                                        onClick={() => {
+                                            if (isSecretaria(prof)) return;
+
                                             navigate("/SecretariaDashboard/PacienteCard/VerAtendimentos", {
                                                 state: {
                                                     profissional: { id: prof.id, nome: prof.nome },
                                                 },
-                                            })
-                                        }
+                                            });
+                                        }}
                                     >
                                         <td className="px-2 py-2 text-center break-words">{prof.nome}</td>
                                         <td
@@ -401,12 +437,12 @@ export default function ProfissionalCard() {
                                             <span
                                                 className={`px-2 py-1 rounded-md text-xs font-medium ${getEspecialidadeBadgeColor(prof.especialidade)}`}
                                             >
-                                                {prof.especialidade}
+                                                {isSecretaria(prof) ? "-" : prof.especialidade || "-"}
                                             </span>
                                         </td>
-                                        <td className="px-1 py-2 text-center">{prof.qtdAtendimentos ?? 0}</td>
-                                        <td className="px-1 py-2 text-center">{prof.qtdAtendimentosMesAtual ?? 0}</td>
-                                        <td className="px-2 py-2 text-center break-words text-xs">{prof.registroProfissional || "-"}</td>
+                                        <td className="px-1 py-2 text-center">{isSecretaria(prof) ? "-" : prof.qtdAtendimentos ?? 0}</td>
+                                        <td className="px-1 py-2 text-center">{isSecretaria(prof) ? "-" : prof.qtdAtendimentosMesAtual ?? 0}</td>
+                                        <td className="px-2 py-2 text-center break-words text-xs">{isSecretaria(prof) ? "-" : prof.registroProfissional || "-"}</td>
                                         <td className="px-2 py-2 text-center">
                                             <span
                                                 className={`px-1.5 py-1 rounded-md text-xs font-medium ${getStatusBadgeColor(prof.status || "Ativo")}`}

@@ -80,9 +80,17 @@ export const deletePaciente = async (id: number) => {
 
 // ==================== PROFISSIONAIS ====================
 
-export const getAllProfissionais = async () => {
+export const getAllProfissionais = async (filtros?: {
+  rolee?: "PROFISSIONAL" | "SECRETARIA" | "TODOS";
+}) => {
   try {
-    const response = await fetch(`${API_BASE_URL}/profissionais`);
+    const params = new URLSearchParams();
+    if (filtros?.rolee) params.append("rolee", filtros.rolee);
+
+    const queryString = params.toString();
+    const response = await fetch(
+      `${API_BASE_URL}/profissionais${queryString ? `?${queryString}` : ""}`
+    );
     if (!response.ok) throw new Error("Erro ao buscar profissionais");
     return await response.json();
   } catch (error) {

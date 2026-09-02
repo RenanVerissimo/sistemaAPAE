@@ -268,6 +268,17 @@ app.delete("/pacientes/:id", async (req: Request, res: Response) => {
 
 app.get("/profissionais", async (req: Request, res: Response) => {
   try {
+    const roleeFiltro = String(req.query.rolee || "PROFISSIONAL").toUpperCase();
+    let filtroRoleeSql = "WHERE p.rolee <> 'SECRETARIA'";
+    const params: any[] = [];
+
+    if (roleeFiltro === "SECRETARIA") {
+      filtroRoleeSql = "WHERE p.rolee = ?";
+      params.push("SECRETARIA");
+    } else if (roleeFiltro === "TODOS") {
+      filtroRoleeSql = "";
+    }
+
     const [rows] = await db.query(`
       SELECT
         p.id,
@@ -295,8 +306,8 @@ app.get("/profissionais", async (req: Request, res: Response) => {
           AND dataConsulta < DATE_ADD(DATE_FORMAT(CURDATE(), '%Y-%m-01'), INTERVAL 1 MONTH)
         GROUP BY profissional_id
       ) atendimentos_mes ON atendimentos_mes.profissional_id = p.id
-      WHERE p.rolee <> 'SECRETARIA'
-    `);
+      ${filtroRoleeSql}
+    `, params);
     res.json(rows);
   } catch (error) {
     console.error("Erro ao buscar profissionais:", error);

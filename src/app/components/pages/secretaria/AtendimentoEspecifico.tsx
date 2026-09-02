@@ -26,6 +26,8 @@ export function AtendimentoEspecifico() {
     const [modalFiltroAberto, setModalFiltroAberto] = useState(false);
     const [anoSelecionado, setAnoSelecionado] = useState(hoje.getFullYear());
     const [mesSelecionado, setMesSelecionado] = useState(hoje.getMonth() + 1);
+    const [anoFiltroTemporario, setAnoFiltroTemporario] = useState(hoje.getFullYear());
+    const [mesFiltroTemporario, setMesFiltroTemporario] = useState(hoje.getMonth() + 1);
 
     const anoMesSelecionado = useMemo(
         () => `${anoSelecionado}-${String(mesSelecionado).padStart(2, "0")}`,
@@ -52,11 +54,15 @@ export function AtendimentoEspecifico() {
                 </div>
 
                 <Button
-                    onClick={() => setModalFiltroAberto(true)}
+                    onClick={() => {
+                        setAnoFiltroTemporario(anoSelecionado);
+                        setMesFiltroTemporario(mesSelecionado);
+                        setModalFiltroAberto(true);
+                    }}
                     className="bg-gray-800 hover:bg-gray-700 text-white"
                 >
                     <Funnel className="w-4 h-4 mr-2" />
-                    Filtro
+                    Filtro Atendimento Mensal
                 </Button>
             </div>
 
@@ -83,8 +89,8 @@ export function AtendimentoEspecifico() {
                             Ano
                             <input
                                 type="number"
-                                value={anoSelecionado}
-                                onChange={(event) => setAnoSelecionado(Number(event.target.value))}
+                                value={anoFiltroTemporario}
+                                onChange={(event) => setAnoFiltroTemporario(Number(event.target.value))}
                                 className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-gray-400"
                             />
                         </label>
@@ -94,11 +100,8 @@ export function AtendimentoEspecifico() {
                                 <button
                                     key={mes.numero}
                                     type="button"
-                                    onClick={() => {
-                                        setMesSelecionado(mes.numero);
-                                        setModalFiltroAberto(false);
-                                    }}
-                                    className={`rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${mesSelecionado === mes.numero
+                                    onClick={() => setMesFiltroTemporario(mes.numero)}
+                                    className={`rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${mesFiltroTemporario === mes.numero
                                         ? "border-gray-800 bg-gray-800 text-white"
                                         : "border-gray-300 bg-white text-gray-700 hover:bg-gray-100"
                                         }`}
@@ -107,6 +110,18 @@ export function AtendimentoEspecifico() {
                                 </button>
                             ))}
                         </div>
+
+                        <Button
+                            type="button"
+                            onClick={() => {
+                                setAnoSelecionado(anoFiltroTemporario);
+                                setMesSelecionado(mesFiltroTemporario);
+                                setModalFiltroAberto(false);
+                            }}
+                            className="mt-4 w-full bg-green-600 text-white hover:bg-green-700"
+                        >
+                            Filtrar
+                        </Button>
                     </div>
                 </div>
             )}
