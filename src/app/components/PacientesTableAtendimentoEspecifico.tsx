@@ -254,6 +254,10 @@ export function PacientesTableAtendimentoEspecifico({
     return contagem;
   }, [anoMesSelecionado, atendimentos, mesSelecionadoLabel]);
 
+  const totalAtendimentosMensais = Array.from(
+    atendimentosMensaisPorPaciente.values()
+  ).reduce((total, quantidade) => total + quantidade, 0);
+
   const pacientesFiltrados = pacientes.filter((paciente) => {
     const matchBusca = filtroAplicado.trim()
       ? paciente.nome.toLowerCase().includes(filtroAplicado.toLowerCase()) ||
@@ -320,6 +324,7 @@ export function PacientesTableAtendimentoEspecifico({
 
   return (
     <>
+
       <div className="flex gap-2 mb-3 items-center">
         <input
           type="text"
@@ -368,6 +373,14 @@ export function PacientesTableAtendimentoEspecifico({
             </button>
           ))}
         </div>
+      </div>
+      <div className="">
+        <p
+          className="w-fit rounded-lg bg-emerald-100 px-2 py-1 text-sm font-medium text-emerald-800"
+          aria-live="polite"
+        >
+          {totalAtendimentosMensais} resultados encontrados
+        </p>
       </div>
 
       <Card className="rounded-xl overflow-hidden shadow-md border border-gray-200">
@@ -504,8 +517,8 @@ export function PacientesTableAtendimentoEspecifico({
             <button
               key={numero}
               className={`px-2 py-1 rounded ${numero === paginaAtual
-                  ? "bg-gray-800 text-white"
-                  : "hover:bg-gray-200"
+                ? "bg-gray-800 text-white"
+                : "hover:bg-gray-200"
                 }`}
               onClick={() => setPaginaAtual(numero)}
             >

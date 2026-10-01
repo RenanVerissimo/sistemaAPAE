@@ -120,7 +120,7 @@ export function AtendimentoEspecifico() {
                             }}
                             className="mt-4 w-full bg-green-600 text-white hover:bg-green-700"
                         >
-                            Filtrar
+                            FILTRAR
                         </Button>
                     </div>
                 </div>

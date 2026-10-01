@@ -141,10 +141,10 @@ async function garantirTabelas() {
 app.get("/pacientes", async (req: Request, res: Response) => {
   try {
     const inicioMesSql = "DATE_FORMAT(CURDATE(), '%Y-%m-01')";
-    console.log(`${DEBUG_ATENDIMENTOS_TAG} GET /pacientes iniciado`);
-    console.log(
-      `${DEBUG_ATENDIMENTOS_TAG} /pacientes usa mes do MySQL entre ${inicioMesSql} e proximo mes`
-    );
+    /* console.log(`${DEBUG_ATENDIMENTOS_TAG} GET /pacientes iniciado`); */
+/*     console.log(
+      `${DEBUG_ATENDIMENTOS_TAG} /pacientes usa mes do MySQL entre ${inicioMesSql} e proximo mes` 
+    );*/
 
     const [rows] = await db.query(`
       SELECT
@@ -174,7 +174,7 @@ app.get("/pacientes", async (req: Request, res: Response) => {
     `);
 
     const pacientesRows = rows as any[];
-    console.log(`${DEBUG_ATENDIMENTOS_TAG} /pacientes total retornado:`, pacientesRows.length);
+   /*  console.log(`${DEBUG_ATENDIMENTOS_TAG} /pacientes total retornado:`, pacientesRows.length); */
     console.table(
       pacientesRows.slice(0, 20).map((paciente) => ({
         id: paciente.id,
@@ -464,13 +464,13 @@ app.put("/profissionais/:id/senha", async (req: Request, res: Response) => {
 app.get("/atendimentos", async (req: Request, res: Response) => {
   try {
     const { paciente, profissional, especialidade, dataInicio, dataFim } = req.query;
-    console.log(`${DEBUG_ATENDIMENTOS_TAG} GET /atendimentos filtros recebidos:`, {
+/*     console.log(`${DEBUG_ATENDIMENTOS_TAG} GET /atendimentos filtros recebidos:`, {
       paciente,
       profissional,
       especialidade,
       dataInicio,
       dataFim,
-    });
+    }); */
 
     let sql = `
       SELECT a.*,
