@@ -545,18 +545,29 @@ app.post("/atendimentos", async (req: Request, res: Response) => {
     await connection.beginTransaction();
 
     const [pacienteRows]: any = await connection.query(
-      "SELECT id FROM pacientes WHERE id = ?",
+      "SELECT id, status FROM pacientes WHERE id = ? FOR UPDATE",
       [paciente_id]
     );
 
     const [profissionalRows]: any = await connection.query(
-      "SELECT id FROM profissionais WHERE id = ?",
+      "SELECT id, rolee FROM profissionais WHERE id = ?",
       [profissional_id]
     );
 
     if (pacienteRows.length === 0 || profissionalRows.length === 0) {
       await connection.rollback();
       res.status(404).json({ message: "Paciente ou profissional não encontrado" });
+      return;
+    }
+
+    if (
+      profissionalRows[0].rolee === "PROFISSIONAL" &&
+      pacienteRows[0].status !== "Ativo"
+    ) {
+      await connection.rollback();
+      res.status(400).json({
+        message: "Só é permitido cadastrar atendimento para pacientes ativos.",
+      });
       return;
     }
 

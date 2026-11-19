@@ -323,7 +323,10 @@ export const cadastrarAtendimento = async (data: {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(data),
     });
-    if (!response.ok) throw new Error("Erro ao cadastrar atendimento");
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || "Erro ao cadastrar atendimento");
+    }
     return await response.json();
   } catch (error) {
     console.error("Erro ao cadastrar atendimento:", error);

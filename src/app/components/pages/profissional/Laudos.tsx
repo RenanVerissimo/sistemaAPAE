@@ -37,6 +37,7 @@ export default function Laudos({ onBack, setSnackbar }: LaudosProps) {
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
+  const [filtroStatus, setFiltroStatus] = useState<"Todos" | "Ativo" | "Inativo">("Ativo");
   const [pagina, setPagina] = useState(1);
   const [pacienteLaudos, setPacienteLaudos] = useState<Paciente | null>(null);
   const [pacienteEnvioLaudo, setPacienteEnvioLaudo] = useState<Paciente | null>(null);
@@ -68,12 +69,15 @@ export default function Laudos({ onBack, setSnackbar }: LaudosProps) {
     fetchPacientes();
   }, [setSnackbar]);
 
-  const pacientesFiltrados = pacientes.filter(
-    (p) =>
+  const pacientesFiltrados = pacientes.filter((p) => {
+    const matchBusca =
       p.nome.toLowerCase().includes(search.toLowerCase()) ||
       (p.cpf && p.cpf.includes(search)) ||
-      (p.cartaoSUS && p.cartaoSUS.includes(search))
-  );
+      (p.cartaoSUS && p.cartaoSUS.includes(search));
+    const matchStatus = filtroStatus === "Todos" || p.status === filtroStatus;
+
+    return matchBusca && matchStatus;
+  });
 
   const indexUltimo = pagina * porPagina;
   const indexPrimeiro = indexUltimo - porPagina;
@@ -226,17 +230,44 @@ export default function Laudos({ onBack, setSnackbar }: LaudosProps) {
 
         <Card>
           <CardContent className="space-y-6 mt-5">
-            <div className="relative w-full max-w-md">
-              <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Buscar por nome, CPF ou CNIS..."
-                value={search}
-                onChange={(e) => {
-                  setSearch(e.target.value);
-                  setPagina(1);
-                }}
-                className="pl-9"
-              />
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div className="relative w-full max-w-md">
+                <SearchIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Buscar por nome, CPF ou CNIS..."
+                  value={search}
+                  onChange={(e) => {
+                    setSearch(e.target.value);
+                    setPagina(1);
+                  }}
+                  className="pl-9"
+                />
+              </div>
+
+              <div className="flex w-fit flex-wrap items-center gap-1.5 border border-gray-300 rounded-lg px-2 py-1 bg-white">
+                <span className="text-xs text-gray-400 font-medium whitespace-nowrap uppercase">Filtro de status:</span>
+                {(["Todos", "Ativo", "Inativo"] as const).map((status) => (
+                  <button
+                    key={status}
+                    type="button"
+                    aria-pressed={filtroStatus === status}
+                    onClick={() => {
+                      setFiltroStatus(status);
+                      setPagina(1);
+                    }}
+                    className={`px-3 py-1 rounded-md text-xs font-semibold transition-colors ${filtroStatus === status
+                      ? status === "Ativo"
+                        ? "bg-green-100 text-green-800"
+                        : status === "Inativo"
+                          ? "bg-red-100 text-red-800"
+                          : "bg-gray-800 text-white"
+                      : "text-gray-500 hover:bg-gray-100"
+                      }`}
+                  >
+                    {status}
+                  </button>
+                ))}
+              </div>
             </div>
 
             {loading ? (

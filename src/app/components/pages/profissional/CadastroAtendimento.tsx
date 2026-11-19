@@ -71,8 +71,9 @@ export function CadastroAtendimento({ user, setSnackbar }: CadastroAtendimentoPr
 
   const pacientesFiltrados = pacientes.filter(
     (p) =>
-      p.nome.toLowerCase().includes(searchPaciente.toLowerCase()) ||
-      (p.cartaoSUS && p.cartaoSUS.includes(searchPaciente))
+      p.status === "Ativo" &&
+      (p.nome.toLowerCase().includes(searchPaciente.toLowerCase()) ||
+        (p.cartaoSUS && p.cartaoSUS.includes(searchPaciente)))
   );
 
   const handleSelectPaciente = (paciente: PacienteAPI) => {
@@ -99,6 +100,17 @@ export function CadastroAtendimento({ user, setSnackbar }: CadastroAtendimentoPr
         severity: "error",
       });
       console.error("user.id inválido:", user.id);
+      return;
+    }
+
+    const pacienteSelecionado = pacientes.find((p) => p.id === selectedPacienteId);
+
+    if (!pacienteSelecionado || pacienteSelecionado.status !== "Ativo") {
+      setSnackbar({
+        open: true,
+        message: "Só é permitido cadastrar atendimento para pacientes ativos.",
+        severity: "warning",
+      });
       return;
     }
 
@@ -139,7 +151,7 @@ export function CadastroAtendimento({ user, setSnackbar }: CadastroAtendimentoPr
       console.error(error);
       setSnackbar({
         open: true,
-        message: "Erro ao salvar atendimento",
+        message: error instanceof Error ? error.message : "Erro ao salvar atendimento",
         severity: "error",
       });
     } finally {
@@ -187,6 +199,9 @@ export function CadastroAtendimento({ user, setSnackbar }: CadastroAtendimentoPr
                   required={!selectedPacienteId}
                   autoComplete="off"
                 />
+                <p className="text-xs text-gray-500">
+                  Somente pacientes ativos podem receber novos atendimentos.
+                </p>
                 {showPacienteSuggestions && pacientesFiltrados.length > 0 && (
                   <div className="absolute z-10 w-full bg-white border rounded-md shadow-lg mt-1 max-h-48 overflow-y-auto">
                     {pacientesFiltrados.map((paciente) => (
@@ -204,6 +219,11 @@ export function CadastroAtendimento({ user, setSnackbar }: CadastroAtendimentoPr
                       </div>
                     ))}
                   </div>
+                )}
+                {showPacienteSuggestions && pacientesFiltrados.length === 0 && (
+                  <p className="text-xs text-gray-500">
+                    Nenhum paciente ativo encontrado.
+                  </p>
                 )}
                 {searchPaciente && !selectedPacienteId && (
                   <p className="text-xs text-gray-500">

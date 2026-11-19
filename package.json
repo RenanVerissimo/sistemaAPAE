@@ -9,7 +9,7 @@
     "build": "vite build",
     "electron": "electron .",
     "dist": "electron-builder",
-    "start": "vite --host 0.0.0.0"
+    "start": "node verificar-ip.cjs && vite --host 0.0.0.0"
   },
   "build": {
     "appId": "com.sistema.apae",
