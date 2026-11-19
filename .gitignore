@@ -4,4 +4,3 @@ dist/
 *.log
 backend/google-credentials.json
 backend/backups/
-src/vite-env.d.ts

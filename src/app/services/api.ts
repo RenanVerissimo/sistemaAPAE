@@ -1,5 +1,4 @@
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:3000";
-const DEBUG_API_TAG = "[API atendimentos]";
+const API_BASE_URL = `http://${window.location.hostname}:${import.meta.env.VITE_API_PORT}`;
 
 // ==================== PACIENTES ====================
 
@@ -281,7 +280,7 @@ export const getAtendimentos = async (filtros: {
     if (filtros.dataFim) params.append("dataFim", filtros.dataFim);
 
     const url = `${API_BASE_URL}/atendimentos?${params.toString()}`;
-    console.groupCollapsed(`${DEBUG_API_TAG} GET /atendimentos`);
+    //console.groupCollapsed(`${DEBUG_API_TAG} GET /atendimentos`);
     console.log("URL:", url);
     console.log("Filtros enviados:", filtros);
     console.groupEnd();
@@ -290,7 +289,7 @@ export const getAtendimentos = async (filtros: {
     if (!response.ok) throw new Error("Erro ao buscar atendimentos");
     const data = await response.json();
 
-    console.groupCollapsed(`${DEBUG_API_TAG} resposta /atendimentos`);
+    //console.groupCollapsed(`${DEBUG_API_TAG} resposta /atendimentos`);
     console.log("Total retornado:", data.length);
     console.table(
       data.slice(0, 30).map((atendimento: any) => ({
